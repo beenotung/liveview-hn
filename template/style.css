@@ -1,0 +1,59 @@
+body {
+  background: #000;
+  color: #c7a775;
+  font: 21px/31px "HelveticaNeue", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #a6a1a1;
+  font-family: "Georgia", "Times New Roman", serif;
+  font-weight: normal;
+}
+
+nav li a {
+  color: #666;
+}
+
+nav li a:hover {
+  color: #999;
+}
+
+a {
+  color: #eb9595;
+}
+a:visited {
+  color: #9ed789;
+}
+a:hover {
+  color: #f2d0d0;
+}
+
+blockquote {
+  font-size: 17px;
+  line-height: 24px;
+  color: #777;
+  font-style: italic;
+}
+
+body > * {
+  max-width: 700px;
+  margin: auto;
+}
+
+p {
+  margin: 0 0 20px 0;
+}
+
+img,
+svg {
+  max-width: 100%;
+  max-height: 100vh;
+  width: auto;
+  height: auto;
+}

@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react",
+    "reactNamespace": "JSX",
+    "strict": true,
+    "incremental": true,
+    "moduleResolution": "node",
+    "target": "es2018",
+    "module": "es6",
+    "lib": [
+      "dom",
+      "es2019.object",
+      "es2020.string"
+    ],
+    "outDir": "dist"
+  },
+  "exclude": [
+    "public",
+    "build",
+    "dist"
+  ]
+}
