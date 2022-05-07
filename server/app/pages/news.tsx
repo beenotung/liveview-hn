@@ -1,7 +1,13 @@
+import { ServerMessage } from '../../../client/index.js'
 import { get } from '../../api.js'
 import { mapArray } from '../components/fragment.js'
 import Style from '../components/style.js'
+import { Context, WsContext } from '../context.js'
+import { nodeToHTML } from '../jsx/html.js'
 import JSX from '../jsx/jsx.js'
+import type { Element } from '../jsx/types'
+import { nodeToVNode } from '../jsx/vnode.js'
+import { sessions } from '../session.js'
 
 function getNews() {
   let ids = get<number[]>(
@@ -46,12 +52,30 @@ function getStoryByIds(ids: number[]) {
   return stories
 }
 
-function updateNews(ids: number[]) {
-  getStoryByIds(ids)
-  // TODO update UI
+function sendUpdate(message: ServerMessage) {
+  sessions.forEach(session => {
+    let url = session.url
+    if (url === '/' || url === '/news') {
+      session.ws.send(message)
+    }
+  })
 }
+
+const StaticContext = { type: 'static' as const }
+
+function updateNews(ids: number[]) {
+  let stories = getStoryByIds(ids)
+  let elements = stories.map(story =>
+    nodeToVNode(StoryItem(story), StaticContext),
+  )
+  let message: ServerMessage = ['update-in', '#news .story-list', [elements]]
+  sendUpdate(message)
+}
+
 function updateStory(story: Story) {
-  // TODO update UI
+  let element = StoryItem(story)
+  let message: ServerMessage = ['update', nodeToVNode(element, StaticContext)]
+  sendUpdate(message)
 }
 
 function News() {
@@ -98,33 +122,37 @@ function News() {
 }
 `)}
       <h1>News</h1>
-      <ol>
-        {mapArray(stories, (story: Story) => {
-          return (
-            <li>
-              <h2>
-                {story.type !== 'story' ? (
-                  <span class="story-type">{story.type}</span>
-                ) : null}
-                {story.title}
-              </h2>
-              {story.url ? (
-                <a class="story-url" href={story.url}>
-                  {story.url}
-                </a>
-              ) : null}
-              <div class="story-meta">
-                <span class="story-score">{story.score}</span>
-                <span class="story-by">{story.by}</span>
-                {' | '}
-                <span class="story-comments">{story.descendants}</span>
-              </div>
-            </li>
-          )
-        })}
-      </ol>
+      <ol class="story-list">{mapArray(stories, StoryItem)}</ol>
     </div>
   )
+}
+
+function StoryItem(story: Story): Element {
+  return [
+    `li.story-item[data-id="${story.id}"]`,
+    {},
+    [
+      <>
+        <h2>
+          {story.type !== 'story' ? (
+            <span class="story-type">{story.type}</span>
+          ) : null}
+          {story.title}
+        </h2>
+        {story.url ? (
+          <a class="story-url" href={story.url}>
+            {story.url}
+          </a>
+        ) : null}
+        <div class="story-meta">
+          <span class="story-score">{story.score}</span>
+          <span class="story-by">{story.by}</span>
+          {' | '}
+          <span class="story-comments">{story.descendants}</span>
+        </div>
+      </>,
+    ],
+  ]
 }
 
 export default News
