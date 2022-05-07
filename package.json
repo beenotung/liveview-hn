@@ -1,9 +1,23 @@
 {
   "name": "liveview-hn",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "type": "module",
+  "description": "Hacker News Reader powered by ts-liveview",
+  "keywords": [
+    "ts-liveview",
+    "typescript",
+    "hacker-news"
+  ],
+  "author": "Beeno Tung <aabbcc1241@yahoo.com.hk> (https://beeno-tung.surge.sh)",
+  "license": "BSD-2-Clause",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beenotung/liveview-hn.git"
+  },
+  "homepage": "https://github.com/beenotung/liveview-hn#readme",
+  "bugs": {
+    "url": "https://github.com/beenotung/liveview-hn/issues"
+  },
   "scripts": {
     "format": "prettier --write . && format-json-cli",
     "fix": "run-p fix:*",
@@ -26,13 +40,6 @@
     "watch:client": "esbuild client/index.ts --watch --bundle --minify --outfile=build/bundle.min.js",
     "watch:js": "nodemon --ignore dist/client dist/server/index.js -- --dev"
   },
-  "keywords": [],
-  "author": {
-    "name": "Beeno Tung",
-    "email": "aabbcc1241@yahoo.com.hk",
-    "url": "https://beeno-tung.surge.sh"
-  },
-  "license": "BSD-2-Clause",
   "dependencies": {
     "@beenotung/tslib": "^19.0.0",
     "compression": "^1.7.4",
