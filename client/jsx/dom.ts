@@ -172,6 +172,7 @@ function createElement(element: VElement): Element | null {
 
 const tagNameRegex = /([\w-]+)/
 const idRegex = /#([\w-]+)/
+const attrListRegex = /\[([\w-]+)=?(.*?)\]/g
 const classListRegex = /\.([\w-]+)/g
 
 function createElementBySelector(selector: string): Element {
@@ -188,15 +189,23 @@ function createElementBySelector(selector: string): Element {
 function applySelector(e: Element, selector: string) {
   let idMatch = selector.match(idRegex)
   if (idMatch) {
-    selector = selector.replace(idMatch[0], '')
     e.id = idMatch[1]
   }
-  let classList: string[] = []
-  for (let classMatch of selector.matchAll(classListRegex)) {
-    classList.push(classMatch[1])
+  for (let attrMatch of selector.matchAll(attrListRegex)) {
+    selector = selector.replace(attrMatch[0], '')
+    let key = attrMatch[1]
+    let value = attrMatch[2]
+    if (
+      value &&
+      ((value[0] === '"' && value[value.length - 1] === '"') ||
+        (value[0] === "'" && value[value.length - 1] === "'"))
+    ) {
+      value = value.slice(1, value.length - 1)
+    }
+    e.setAttribute(key, value)
   }
-  if (classList.length > 0 && e.className) {
-    e.className = classList.join(' ')
+  for (let classMatch of selector.matchAll(classListRegex)) {
+    e.classList.add(classMatch[1])
   }
 }
 
