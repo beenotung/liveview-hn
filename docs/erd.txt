@@ -1,0 +1,6 @@
+cache
+-----
+id pk
+url text unique
+exp integer
+data text
