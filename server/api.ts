@@ -36,3 +36,55 @@ export function get<T>(
   }
   return value
 }
+
+export type StoryDTO = {
+  by: string
+  descendants: number
+  id: number
+  kids: number[]
+  score: number
+  time: number
+  title: string
+  type: string
+  url?: string
+}
+
+export function getStoryListByIds(
+  ids: number[],
+  updateFn: (data: StoryDTO) => void,
+) {
+  let stories = ids.map(id =>
+    get<StoryDTO>(
+      `https://hacker-news.firebaseio.com/v0/item/${id}.json`,
+      {
+        by: '',
+        descendants: 0,
+        id,
+        kids: [],
+        score: 0,
+        time: 0,
+        title: '',
+        type: 'loading',
+      },
+      updateFn,
+    ),
+  )
+  return stories
+}
+
+export function getStoryById(id: number, updateFn: (data: StoryDTO) => void) {
+  return get<StoryDTO>(
+    `https://hacker-news.firebaseio.com/v0/item/${id}.json`,
+    {
+      by: '',
+      descendants: 0,
+      id,
+      kids: [],
+      score: 0,
+      time: 0,
+      title: '',
+      type: 'loading',
+    },
+    updateFn,
+  )
+}
