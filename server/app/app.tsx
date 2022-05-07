@@ -82,7 +82,7 @@ let AppAST: Element = [
         </span>
       </header>
       {scripts}
-      <Flush/>
+      <Flush />
       <main>
         {Switch(
           {
@@ -102,7 +102,7 @@ let AppAST: Element = [
           <NotMatch />,
         )}
       </main>
-      <Flush/>
+      <Flush />
       <footer>
         <span class="yclinks">
           <a href="/guidelines">Guidelines</a>
