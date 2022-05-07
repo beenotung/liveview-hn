@@ -29,6 +29,10 @@ import { config } from '../config.js'
 import Style from './components/style.js'
 import Stats from './stats.js'
 import { MuteConsole } from './components/script.js'
+import { readFileSync } from 'fs'
+import { join } from 'path'
+import News from './pages/news.js'
+import NotImplemented from './pages/not-implemented.js'
 
 let template = loadTemplate<index>('index')
 
@@ -41,105 +45,78 @@ let scripts = config.development ? (
   </>
 )
 
-function formatMenuText(href: string): string {
-  let text = href.substring(1)
-  if (!text.includes('/')) {
-    text = text.split('-').map(capitalize).join('-')
-  }
-  return text
-}
-
-export function App(): Element {
-  // you can write the AST direct for more compact wire-format
-  return [
-    'div.app',
-    {},
-    [
-      // or you can write in JSX for better developer-experience (if you're coming from React)
-      <>
-        {Style(/* css */ `
-h1.title {
-  color: darkblue;
-}
-h1.title a {
-  font-size: 1rem;
-}
-`)}
-        <h1 class="title">
-          ts-liveview{' '}
-          <a href="https://news.ycombinator.com/item?id=22830472">HN</a>{' '}
-          <a href="https://github.com/beenotung/ts-liveview">git</a>
-        </h1>
-        {scripts}
-        <Stats />
-        <Menu
-          attrs={{ style: 'margin: 1em 0' }}
-          matchPrefix
-          routes={[
-            ['/home', 'Home', '/'],
-            ...[
-              '/about',
-              '/thermostat',
-              '/editor',
-              '/auto-complete',
-              '/form',
-              '/cookie-session',
-              '/chatroom',
-              '/some/page/that/does-not/exist',
-            ].map(href => [href, formatMenuText(href)] as [string, string]),
-          ]}
-        />
-        <fieldset>
-          <legend>Router Demo</legend>
-          {Switch(
-            {
-              // jsx node can be used directly
-              '/': Home,
-              '/home': Home,
-              '/about': About,
-              '/about/:mode': About,
-              // invoke functional component with square bracket
-              '/thermostat': [Thermostat.index],
-              '/thermostat/inc': [Thermostat.inc],
-              '/thermostat/dec': [Thermostat.dec],
-              // or invoke functional component with x-html tag
-              '/editor': <Editor />,
-              '/auto-complete': <AutoCompleteDemo />,
-              '/form': <DemoForm.index />,
-              '/form/submit': <DemoForm.submit />,
-              '/form/live/:key': <DemoForm.set />,
-              '/cookie-session': <DemoCookieSession.index />,
-              '/cookie-session/token': <DemoCookieSession.Token />,
-              '/chatroom': <Chatroom.index />,
-              '/chatroom/typing': <Chatroom.typing />,
-              '/chatroom/rename': <Chatroom.rename />,
-              '/chatroom/send': <Chatroom.send />,
-              // patch routes for links in README.md
-              '/LICENSE': License,
-              '/server/app/pages/thermostat.tsx': (
-                <Redirect href="/thermostat" />
-              ),
-              '/server/app/pages/editor.tsx': <Redirect href="/editor" />,
-              '/server/app/pages/auto-complete-demo.tsx': (
-                <Redirect href="/auto-complete" />
-              ),
-              '/server/app/pages/demo-form.tsx': <Redirect href="/form" />,
-              '/server/app/pages/home.tsx': <Redirect href="/home" />,
-              '/server/app/app.tsx': <Redirect href="/about/markdown" />,
-              '/server/app/pages/chatroom.tsx': <Redirect href="/chatroom" />,
-            },
-            <NotMatch />,
-          )}
-        </fieldset>
-        <Flush />
-      </>,
-    ],
-  ]
-}
-
-/* calling <App/> will transform the JSX to AST for each rendering */
-/* or you can reuse a pre-computed AST as below */
-const AppAST = App()
+let AppAST: Element = [
+  'div.app',
+  {},
+  [
+    <>
+      {Style(readFileSync(join('template', 'style.css')).toString())}
+      <header>
+        <a href="/">
+          <img
+            src="https://news.ycombinator.com/y18.gif"
+            style="border:1px white solid;"
+            width="18"
+            height="18"
+          />
+        </a>
+        <span class="pagetop">
+          {' '}
+          <b class="hnname">
+            <a href="/news">Hacker News</a>
+          </b>{' '}
+          <a href="/newest">new</a>
+          {' | '}
+          <a href="/front">past</a>
+          {' | '}
+          <a href="/newcomments">comments</a>
+          {' | '}
+          <a href="/ask">ask</a>
+          {' | '}
+          <a href="/show">show</a>
+          {' | '}
+          <a href="/jobs">jobs</a>
+          {' | '}
+          <a href="https://news.ycombinator.com/submit">submit</a>
+        </span>
+      </header>
+      {scripts}
+      <Flush/>
+      <main>
+        {Switch(
+          {
+            '/': <News />,
+            '/news': <News />,
+            '/newest': <NotImplemented />,
+            '/font': <NotImplemented />,
+            '/newcomments': <NotImplemented />,
+            '/ask': <NotImplemented />,
+            '/show': <NotImplemented />,
+            '/jobs': <NotImplemented />,
+            '/guidelines': <NotImplemented />,
+            '/faq': <NotImplemented />,
+            '/lists': <NotImplemented />,
+          },
+          <NotMatch />,
+        )}
+      </main>
+      <Flush/>
+      <footer>
+        <span class="yclinks">
+          <a href="/guidelines">Guidelines</a>
+          {' | '}
+          <a href="/faq">FAQ</a>
+          {' | '}
+          <a href="/lists">Lists</a>
+          {' | '}
+          <a href="https://github.com/HackerNews/API">API</a>
+          {' | '}
+          <a href="https://github.com/beenotung/liveview-hn">Repo</a>
+        </span>
+      </footer>
+    </>,
+  ],
+]
 
 export let appRouter = express.Router()
 
