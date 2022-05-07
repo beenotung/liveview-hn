@@ -213,13 +213,13 @@ export let onWsMessage: OnWsMessage<ClientMessage> = (event, ws, wss) => {
   let eventType: string | undefined
   let url: string
   let args: any[] | undefined
-  let locale: string | undefined
-  let timeZone: string | undefined
+  let session = getWSSession(ws)
   if (event[0] === 'mount') {
     eventType = 'mount'
     url = event[1]
-    locale = event[2]
-    timeZone = event[3]
+    session.locales = event[2]
+    session.timeZone = event[3]
+    session.timezoneOffset = event[4]
   } else if (event[0][0] === '/') {
     eventType = 'route'
     url = event[0]
@@ -228,6 +228,7 @@ export let onWsMessage: OnWsMessage<ClientMessage> = (event, ws, wss) => {
     console.log('unknown type of ws message:', event)
     return
   }
+  session.url = url
   let context: WsContext = {
     type: 'ws',
     ws,
@@ -235,14 +236,7 @@ export let onWsMessage: OnWsMessage<ClientMessage> = (event, ws, wss) => {
     url,
     args,
     event: eventType,
-  }
-  let session = getWSSession(ws)
-  session.url = url
-  if (locale) {
-    session.locales = locale
-  }
-  if (timeZone) {
-    session.timeZone = timeZone
+    session,
   }
   dispatchUpdate(AppAST, context)
 }
