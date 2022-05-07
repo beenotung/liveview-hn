@@ -1,6 +1,10 @@
 # liveview-hn
 
-Powered by [ts-liveview](./toolkit.md)
+Hacker News Reader powered by [ts-liveview](./toolkit.md)
+
+This is a an example application of ts-liveview.
+
+The data is fetched from [the official API](https://github.com/HackerNews/API) in the backend and cached in the server.
 
 ## License
 
