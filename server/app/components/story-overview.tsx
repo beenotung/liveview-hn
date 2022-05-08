@@ -4,6 +4,7 @@ import Style from './style.js'
 import JSX from '../jsx/jsx.js'
 import DateTimeText, { toLocaleDateTimeString } from './datetime.js'
 import { getContext } from '../context.js'
+import { Link } from './router.js'
 
 let style = Style(/* css */ `
 .story-overview h2 {
@@ -63,7 +64,9 @@ function StoryOverview(attrs: { story: StoryDTO; tagName: string }) {
         ) : null}
         <div class="story-meta">
           <span class="story-score">{story.score}</span>
-          <span class="story-by">{story.by}</span>
+          <span class="story-by">
+            <Link href={'/user?id=' + story.by}>{story.by}</Link>
+          </span>
           {time ? (
             <>
               {' | '}

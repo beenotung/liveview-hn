@@ -10,6 +10,7 @@ import { Flush } from '../components/flush.js'
 import Style from '../components/style.js'
 import { nodeToVNode } from '../jsx/vnode.js'
 import { Raw } from '../components/raw.js'
+import { Link } from '../components/router.js'
 
 function updateStoryDetail(story: StoryDTO, context: Context) {
   if (context.type !== 'ws' || context.url !== '/0') return
@@ -146,7 +147,11 @@ function StoryItem(attrs: {
     [
       <>
         <div class="story-meta">
-          {item.by ? <span class="story-by">{item.by}</span> : null}
+          {item.by ? (
+            <span class="story-by">
+              <Link href={'/user?id=' + item.by}>{item.by}</Link>
+            </span>
+          ) : null}
           {time ? (
             <>
               <a href={'/item?id=' + item.id}>

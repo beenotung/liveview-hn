@@ -34,6 +34,7 @@ import { join } from 'path'
 import NotImplemented from './pages/not-implemented.js'
 import StoryDetail from './pages/story-detail.js'
 import StoryList from './pages/story-list.js'
+import Profile from './pages/profile.js'
 
 let template = loadTemplate<index>('index')
 
@@ -89,6 +90,7 @@ let AppAST: Element = [
             '/': <StoryList.TopStories />,
             '/news': <StoryList.TopStories />,
             '/item': <StoryDetail />,
+            '/user': <Profile />,
             '/newest': <StoryList.NewStories />,
             '/front': <StoryList.BestStories />,
             '/newcomments': <StoryList.Comments />,
