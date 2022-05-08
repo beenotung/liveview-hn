@@ -6,7 +6,7 @@ import Style from '../components/style.js'
 import { Context, getContext, WsContext } from '../context.js'
 import JSX from '../jsx/jsx.js'
 import { nodeToVNode } from '../jsx/vnode.js'
-import StoryOverview from './story-overview.js'
+import StoryOverview from '../components/story-overview.js'
 
 function getNews(context: Context) {
   let ids = get<number[]>(

@@ -1,8 +1,8 @@
 import { YEAR } from '@beenotung/tslib/time.js'
 import { StoryDTO } from '../../api.js'
-import Style from '../components/style.js'
+import Style from './style.js'
 import JSX from '../jsx/jsx.js'
-import DateTimeText, { toLocaleDateTimeString } from '../components/datetime.js'
+import DateTimeText, { toLocaleDateTimeString } from './datetime.js'
 import { getContext } from '../context.js'
 
 let style = Style(/* css */ `
