@@ -68,15 +68,9 @@ function renderStoryDetail(story: StoryDTO): Element {
     [
       StoryOverview.style,
       style,
-      story.text ? (
-        <StoryItem
-          item={story}
-          indent={0}
-          nextId={undefined}
-          parentIds={new Set([story.id])}
-          topLevel
-        />
-      ) : (
+      story.deleted ? (
+        <p>[deleted]</p>
+      ) : story.title ? (
         <>
           <StoryOverview story={story} tagName="div" />
           {mapArray(story.kids || [], (id, i, ids) => (
@@ -91,6 +85,16 @@ function renderStoryDetail(story: StoryDTO): Element {
             </>
           ))}
         </>
+      ) : story.text ? (
+        <StoryItem
+          item={story}
+          indent={0}
+          nextId={undefined}
+          parentIds={new Set([story.id])}
+          topLevel
+        />
+      ) : (
+        <p>{JSON.stringify(story)}</p>
       ),
     ],
   ]
