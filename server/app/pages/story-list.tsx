@@ -19,6 +19,7 @@ export function genStoryList(options: {
       if (!Array.isArray(ids)) {
         ids = ids.items
       }
+      ids = ids.slice(0, 30)
       updateStoryList(ids, context)
     })
     if (!Array.isArray(ids)) {
