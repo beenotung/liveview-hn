@@ -122,7 +122,7 @@ function getTitle(id: number): string | null {
       id = story.parent
       continue
     }
-    return null
+    return '#' + id
   }
 }
 

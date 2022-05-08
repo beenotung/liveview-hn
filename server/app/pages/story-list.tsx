@@ -84,17 +84,17 @@ export function genStoryList(options: {
   function StoryOverviewById(attrs: { id: number }) {
     let context = getContext(attrs)
     let story = getStoryById(attrs.id, story => updateStory(story, context))
-    return story.text ? (
+    return story.title ? (
+      <StoryOverview story={story} tagName="li" />
+    ) : (
       <StoryDetail.StoryItem
         item={story}
         indent={0}
         nextId={undefined}
         parentIds={new Set()}
         topLevel
-				skipChildren
+        skipChildren
       />
-    ) : (
-      <StoryOverview story={story} tagName="li" />
     )
   }
 
@@ -121,5 +121,20 @@ export default {
     id: 'newcomments',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/updates.json',
     urlFilter: (url: string) => url === '/newcomments',
+  }),
+  AskStories: genStoryList({
+    id: 'ask',
+    apiUrl: 'https://hacker-news.firebaseio.com/v0/askstories.json',
+    urlFilter: (url: string) => url === '/ask',
+  }),
+  ShowStories: genStoryList({
+    id: 'ask',
+    apiUrl: 'https://hacker-news.firebaseio.com/v0/showstories.json',
+    urlFilter: (url: string) => url === '/show',
+  }),
+  JobStories: genStoryList({
+    id: 'ask',
+    apiUrl: 'https://hacker-news.firebaseio.com/v0/jobstories.json',
+    urlFilter: (url: string) => url === '/job',
   }),
 }
