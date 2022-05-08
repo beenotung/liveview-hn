@@ -1,8 +1,12 @@
+import { ServerMessage } from '../../../client/index.js'
 import { get } from '../../api.js'
 import { toLocaleDateTimeString } from '../components/datetime.js'
 import Style from '../components/style.js'
-import { getContext } from '../context.js'
+import { Context, getContext, WsContext } from '../context.js'
 import JSX from '../jsx/jsx.js'
+import { Element } from '../jsx/types.js'
+import { nodeToVNode } from '../jsx/vnode.js'
+import { sessions } from '../session.js'
 
 let style = Style(/* css */ `
 #profile td {
@@ -34,7 +38,25 @@ function getProfile(id: string): ProfileDTO {
   )
 }
 
-function updateProfile(profile: ProfileDTO) {}
+function updateProfile(profile: ProfileDTO) {
+  sessions.forEach(session => {
+    if (session.url !== '/user?id=' + profile.id) {
+      return
+    }
+    let context: WsContext = {
+      type: 'ws',
+      session,
+      ws: session.ws,
+      url: session.url,
+    }
+    let element = nodeToVNode(
+      renderProfile(profile.id, profile, context),
+      context,
+    )
+    let message: ServerMessage = ['update', element]
+    session.ws.send(message)
+  })
+}
 
 function Profile(attrs: {}) {
   let context = getContext(attrs)
@@ -49,6 +71,14 @@ function Profile(attrs: {}) {
     return <p>Error: Missing id in query</p>
   }
   let profile = getProfile(id)
+  return renderProfile(id, profile, context)
+}
+
+function renderProfile(
+  id: string,
+  profile: ProfileDTO,
+  context: Context,
+): Element {
   return [
     '#profile',
     {},
