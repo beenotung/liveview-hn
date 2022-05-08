@@ -1,6 +1,8 @@
+import { YEAR } from '@beenotung/tslib/time.js'
 import { StoryDTO } from '../../api.js'
 import Style from '../components/style.js'
 import JSX from '../jsx/jsx.js'
+import DateTimeText from '../components/datetime.js'
 
 let style = Style(/* css */ `
 .story-overview h2 {
@@ -40,6 +42,7 @@ let style = Style(/* css */ `
 
 function StoryOverview(props: { story: StoryDTO; tagName: string }) {
   let story = props.story
+  let time = story.time * 1000
   return [
     props.tagName + `.story-overview[data-id="${story.id}"]`,
     {},
@@ -59,6 +62,14 @@ function StoryOverview(props: { story: StoryDTO; tagName: string }) {
         <div class="story-meta">
           <span class="story-score">{story.score}</span>
           <span class="story-by">{story.by}</span>
+          {time ? (
+            <>
+              {' | '}
+              <time class="story-time" datetime={new Date(time).toISOString()}>
+                <DateTimeText time={time} relativeTimeThreshold={YEAR} />
+              </time>
+            </>
+          ) : null}
           {' | '}
           <a class="story-comments" href={'/item?id=' + story.id}>
             {story.descendants}
