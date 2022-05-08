@@ -1,5 +1,6 @@
 import { allNames } from '@beenotung/tslib/constant/character-name.js'
 import { Random } from '@beenotung/tslib/random.js'
+import { YEAR } from '@beenotung/tslib/time.js'
 import { ServerMessage } from '../../../client/index.js'
 import { debugLog } from '../../debug.js'
 import { Style } from '../components/style.js'
@@ -7,10 +8,13 @@ import { getContext, WsContext } from '../context.js'
 import { getContextCookie } from '../cookie.js'
 import JSX from '../jsx/jsx.js'
 import { attrs, Node } from '../jsx/types.js'
-import { onWsSessionClose, sessions } from '../session.js'
+import { onWsSessionClose, Session, sessions } from '../session.js'
 import { ManagedWebsocket } from '../../ws/wss.js'
 import { EarlyTerminate } from '../helpers.js'
-import DateTimeText from '../components/datetime.js'
+import DateTimeText, {
+  createRelativeTimer,
+  toLocaleDateTimeString,
+} from '../components/datetime.js'
 import { nodeToVNode } from '../jsx/vnode.js'
 
 let log = debugLog('chatroom.tsx')
@@ -32,6 +36,12 @@ const style = Style(/* css */ `
 }
 #chatroom .chat-time {
   font-size: small;
+}
+#chatroom .chat-time::before {
+  content: "[";
+}
+#chatroom .chat-time::after {
+  content: "]";
 }
 #chatroom .chat-author {
   font-weight: bold;
@@ -65,15 +75,6 @@ function sendMessage(message: ServerMessage) {
   })
 }
 
-function sendCustomMessage(fn: (ws: ManagedWebsocket) => ServerMessage) {
-  sessions.forEach(session => {
-    if (session.url?.startsWith('/chatroom')) {
-      let ws = session.ws
-      ws.send(fn(ws))
-    }
-  })
-}
-
 function remove<T>(array: T[], item: T, onRemove: () => void) {
   let index = array.indexOf(item)
   if (index === -1) return
@@ -89,23 +90,28 @@ class ChatroomState {
   typing_timeout_map = new Map<NameSpan, NodeJS.Timeout>()
 
   addMessage(nickname: string, message: string) {
-    let now = new Date()
-    let time = now.getTime()
-    let li = (
-      <li class="chat-record">
-        <time class="chat-time" datetime={now.toISOString()}>
-          [<DateTimeText time={time} />]
-        </time>{' '}
-        <br />
-        <span class="chat-author">{nickname}</span>
-        <span class="chat-message">{message}</span>
-      </li>
-    )
+    let date = new Date()
+    let time = date.getTime()
+    let attrs = {
+      nickname: nickname,
+      message: message,
+      timeISOString: date.toISOString(),
+      time: time,
+      id: 'msg-' + (this.msg_list.length + 1),
+    }
+    let li = <MessageItem {...attrs} />
     this.msg_list.push(li)
-    sendCustomMessage(ws => {
-      let context: WsContext = { type: 'ws', ws } as any
+    sessions.forEach(session => {
+      if (!session.url?.startsWith('/chatroom')) return
+      let context: WsContext = {
+        type: 'ws',
+        ws: session.ws,
+        session,
+        url: session.url!,
+      }
       let node = nodeToVNode(li, context)
-      return ['append', '#chatroom .msg-list', node]
+      let message: ServerMessage = ['append', '#chatroom .msg-list', node]
+      session.ws.send(message)
     })
   }
   addTyping(span: NameSpan) {
@@ -372,6 +378,40 @@ export function Chatroom(attrs: attrs) {
     </>
   )
 }
+
+function sessionFilter(session: Session): boolean {
+  return !!session.url?.startsWith('/chatroom')
+}
+const { startRelativeTimer } = createRelativeTimer({ sessionFilter })
+
+type MessageItemAttrs = {
+  id: string
+  nickname: string
+  message: string
+  timeISOString: string
+  time: number
+}
+
+function MessageItem(attrs: MessageItemAttrs) {
+  let context = getContext(attrs)
+  let time = attrs.time
+  startRelativeTimer({ time, selector: `#${attrs.id} .chat-time` }, context)
+  return (
+    <li class="chat-record" id={attrs.id}>
+      <time
+        class="chat-time"
+        datetime={attrs.timeISOString}
+        title={toLocaleDateTimeString(time, context)}
+      >
+        <DateTimeText time={time} relativeTimeThreshold={YEAR} />
+      </time>{' '}
+      <br />
+      <span class="chat-author">{attrs.nickname}</span>
+      <span class="chat-message">{attrs.message}</span>
+    </li>
+  )
+}
+
 export default {
   index: Chatroom,
   typing,

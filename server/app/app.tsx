@@ -232,7 +232,6 @@ export let onWsMessage: OnWsMessage<ClientMessage> = (event, ws, wss) => {
   let context: WsContext = {
     type: 'ws',
     ws,
-    wss,
     url,
     args,
     event: eventType,
