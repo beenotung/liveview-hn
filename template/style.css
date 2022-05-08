@@ -61,3 +61,9 @@ svg {
 }
 
 /* app specific styles */
+.pagetop a {
+  text-decoration: none;
+}
+.pagetop a.topsel {
+  border-bottom: 1px solid #999;
+}

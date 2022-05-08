@@ -2,8 +2,8 @@ import JSX from './jsx/jsx.js'
 import type { index } from '../../template/index.html'
 import { loadTemplate } from '../template.js'
 import express from 'express'
-import type { ExpressContext, WsContext } from './context.js'
-import type { Element } from './jsx/types'
+import { ExpressContext, getContext, WsContext } from './context.js'
+import type { Component, ComponentFn, Element } from './jsx/types'
 import { nodeToHTML, writeNode } from './jsx/html.js'
 import { sendHTMLHeader } from './express.js'
 import { Link, Redirect, Switch } from './components/router.js'
@@ -15,7 +15,6 @@ import { capitalize } from './string.js'
 import NotMatch from './pages/not-match.js'
 import About, { License } from './pages/about.js'
 import DemoCookieSession from './pages/demo-cookie-session.js'
-import { Menu } from './components/menu.js'
 import type { ClientMessage } from '../../client/index'
 import escapeHtml from 'escape-html'
 import { Flush } from './components/flush.js'
@@ -41,6 +40,35 @@ let scripts = config.development ? (
   </>
 )
 
+function Menu(attrs: {}) {
+  let context = getContext(attrs)
+  let url = context.type === 'static' ? '?' : context.url
+  const link = (href: string, text: string): Component => [
+    Link as ComponentFn,
+    url === href ? { href, class: 'topsel' } : { href },
+    [text],
+  ]
+  return (
+    <span class="pagetop">
+      {' '}
+      <b class="hnname">{link('/news', 'Hacker News')}</b>{' '}
+      {link('/newest', 'new')}
+      {' | '}
+      {link('/front', 'past')}
+      {' | '}
+      {link('/newcomments', 'comments')}
+      {' | '}
+      {link('/ask', 'ask')}
+      {' | '}
+      {link('/show', 'show')}
+      {' | '}
+      {link('/jobs', 'jobs')}
+      {' | '}
+      <a href="https://news.ycombinator.com/submit">submit</a>
+    </span>
+  )
+}
+
 let AppAST: Element = [
   'div.app',
   {},
@@ -56,25 +84,7 @@ let AppAST: Element = [
             height="18"
           />
         </Link>
-        <span class="pagetop">
-          {' '}
-          <b class="hnname">
-            <Link href="/news">Hacker News</Link>
-          </b>{' '}
-          <Link href="/newest">new</Link>
-          {' | '}
-          <Link href="/front">past</Link>
-          {' | '}
-          <Link href="/newcomments">comments</Link>
-          {' | '}
-          <Link href="/ask">ask</Link>
-          {' | '}
-          <Link href="/show">show</Link>
-          {' | '}
-          <Link href="/jobs">jobs</Link>
-          {' | '}
-          <a href="https://news.ycombinator.com/submit">submit</a>
-        </span>
+        <Menu />
       </header>
       {scripts}
       <Flush />
@@ -115,6 +125,9 @@ let AppAST: Element = [
           Powered by{' '}
           <a href="https://github.com/beenotung/ts-liveview">ts-liveview</a>
         </span>
+        <div>
+          <Stats />
+        </div>
       </footer>
     </>,
   ],
