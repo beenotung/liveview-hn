@@ -47,7 +47,7 @@ function StoryOverview(attrs: { story: StoryDTO; tagName: string }) {
   let story = attrs.story
   let time = story.time * 1000
   return [
-    attrs.tagName + `#${story.id}.story-overview`,
+    attrs.tagName + `#story-${story.id}.story-overview`,
     {},
     [
       <>

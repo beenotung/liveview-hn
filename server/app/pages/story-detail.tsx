@@ -144,7 +144,7 @@ function StoryItem(attrs: {
   let time = item.time * 1000
   attrs.parentIds.add(item.id)
   return [
-    `div#${item.id}.story-item`,
+    `div#item-${item.id}.story-item`,
     {
       style: `margin-left: ${attrs.indent * 40}px`,
     },
