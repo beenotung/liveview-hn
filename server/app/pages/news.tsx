@@ -1,54 +1,49 @@
 import { ServerMessage } from '../../../client/index.js'
-import { get, getStoryListByIds, StoryDTO } from '../../api.js'
+import { get, getStoryById, StoryDTO } from '../../api.js'
+import { Flush } from '../components/flush.js'
 import { mapArray } from '../components/fragment.js'
 import Style from '../components/style.js'
+import { Context, getContext, WsContext } from '../context.js'
 import JSX from '../jsx/jsx.js'
-import type { Element } from '../jsx/types'
 import { nodeToVNode } from '../jsx/vnode.js'
-import { sessions } from '../session.js'
 import StoryOverview from './story-overview.js'
 
-function sendUpdate(message: ServerMessage) {
-  sessions.forEach(session => {
-    let url = session.url
-    if (url === '/' || url === '/news') {
-      session.ws.send(message)
-    }
-  })
-}
-
-function getNews() {
+function getNews(context: Context) {
   let ids = get<number[]>(
     'https://hacker-news.firebaseio.com/v0/topstories.json',
     [],
-    updateNews,
+    ids => updateNews(ids, context),
   )
   ids = ids.slice(0, 30)
-  let stories = getStoryListByIds(ids, updateStory)
-  return stories
+  return ids
 }
 
-const StaticContext = {
-  type: 'static' as const,
-}
-
-function updateNews(ids: number[]) {
-  let stories = getStoryListByIds(ids, updateStory)
+function updateNews(ids: number[], context: Context) {
+  if (context.type !== 'ws') return
+  let url = context.url
+  if (url !== '/' && url !== '/news') return
+  let stories = ids.map(id =>
+    getStoryById(id, story => updateStory(story, context)),
+  )
   let elements = stories.map(story =>
-    nodeToVNode(StoryItem(story), StaticContext),
+    nodeToVNode(<StoryOverview story={story} tagName="li" />, context),
   )
   let message: ServerMessage = ['update-in', '#news .story-list', [elements]]
-  sendUpdate(message)
+  context.ws.send(message)
 }
 
-function updateStory(story: StoryDTO) {
-  let element = StoryItem(story)
-  let message: ServerMessage = ['update', nodeToVNode(element, StaticContext)]
-  sendUpdate(message)
+function updateStory(story: StoryDTO, context: Context) {
+  if (context.type !== 'ws') return
+  let url = context.url
+  if (url !== '/' && url !== '/news') return
+  let element = <StoryOverview story={story} tagName="li" />
+  let message: ServerMessage = ['update', nodeToVNode(element, context)]
+  context.ws.send(message)
 }
 
-function News() {
-  let stories = getNews()
+function News(attrs: {}) {
+  let context = getContext(attrs)
+  let ids = getNews(context)
   return (
     <div id="news">
       {Style(/* css */ `
@@ -59,12 +54,21 @@ function News() {
 `)}
       {StoryOverview.style}
       <h1>News</h1>
-      <ol class="story-list">{mapArray(stories, StoryItem)}</ol>
+      <ol class="story-list">
+        {mapArray(ids, id => (
+          <>
+            <Flush />
+            <StoryOverviewById id={id} />
+          </>
+        ))}
+      </ol>
     </div>
   )
 }
 
-function StoryItem(story: StoryDTO): Element {
+function StoryOverviewById(attrs: { id: number }) {
+  let context = getContext(attrs)
+  let story = getStoryById(attrs.id, story => updateStory(story, context))
   return <StoryOverview story={story} tagName="li" />
 }
 

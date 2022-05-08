@@ -33,7 +33,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import News from './pages/news.js'
 import NotImplemented from './pages/not-implemented.js'
-import Story from './pages/story.js'
+import StoryDetail from './pages/story-detail.js'
 
 let template = loadTemplate<index>('index')
 
@@ -88,7 +88,7 @@ let AppAST: Element = [
           {
             '/': <News />,
             '/news': <News />,
-            '/item': <Story />,
+            '/item': <StoryDetail />,
             '/newest': <NotImplemented />,
             '/font': <NotImplemented />,
             '/newcomments': <NotImplemented />,

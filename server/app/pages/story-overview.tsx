@@ -2,7 +2,8 @@ import { YEAR } from '@beenotung/tslib/time.js'
 import { StoryDTO } from '../../api.js'
 import Style from '../components/style.js'
 import JSX from '../jsx/jsx.js'
-import DateTimeText from '../components/datetime.js'
+import DateTimeText, { toLocaleDateTimeString } from '../components/datetime.js'
+import { getContext } from '../context.js'
 
 let style = Style(/* css */ `
 .story-overview h2 {
@@ -40,11 +41,12 @@ let style = Style(/* css */ `
 }
 `)
 
-function StoryOverview(props: { story: StoryDTO; tagName: string }) {
-  let story = props.story
+function StoryOverview(attrs: { story: StoryDTO; tagName: string }) {
+  let context = getContext(attrs)
+  let story = attrs.story
   let time = story.time * 1000
   return [
-    props.tagName + `.story-overview[data-id="${story.id}"]`,
+    attrs.tagName + `#${story.id}.story-overview`,
     {},
     [
       <>
@@ -65,7 +67,11 @@ function StoryOverview(props: { story: StoryDTO; tagName: string }) {
           {time ? (
             <>
               {' | '}
-              <time class="story-time" datetime={new Date(time).toISOString()}>
+              <time
+                class="story-time"
+                datetime={new Date(time).toISOString()}
+                title={toLocaleDateTimeString(time, context)}
+              >
                 <DateTimeText time={time} relativeTimeThreshold={YEAR} />
               </time>
             </>

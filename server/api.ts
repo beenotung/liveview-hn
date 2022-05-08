@@ -41,39 +41,22 @@ export type StoryDTO = {
   by: string
   descendants: number
   id: number
-  kids: number[]
+  kids?: number[]
   score: number
   time: number
   title: string
   type: string
   url?: string
+  text: string
+  parent?: number
+  deleted?: boolean
 }
 
-export function getStoryListByIds(
-  ids: number[],
+export function getStoryById(
+  id: number,
   updateFn: (data: StoryDTO) => void,
-) {
-  let stories = ids.map(id =>
-    get<StoryDTO>(
-      `https://hacker-news.firebaseio.com/v0/item/${id}.json`,
-      {
-        by: '',
-        descendants: 0,
-        id,
-        kids: [],
-        score: 0,
-        time: 0,
-        title: '',
-        type: 'loading',
-      },
-      updateFn,
-    ),
-  )
-  return stories
-}
-
-export function getStoryById(id: number, updateFn: (data: StoryDTO) => void) {
-  return get<StoryDTO>(
+): StoryDTO {
+  let story = get<StoryDTO>(
     `https://hacker-news.firebaseio.com/v0/item/${id}.json`,
     {
       by: '',
@@ -84,7 +67,13 @@ export function getStoryById(id: number, updateFn: (data: StoryDTO) => void) {
       time: 0,
       title: '',
       type: 'loading',
+      text: '',
     },
     updateFn,
   )
+  if (story.deleted) {
+    story.text = story.text || '[deleted]'
+    story.title = story.title || '[deleted]'
+  }
+  return story
 }
