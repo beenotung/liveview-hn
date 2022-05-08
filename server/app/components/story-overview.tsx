@@ -58,9 +58,9 @@ function StoryOverview(attrs: { story: StoryDTO; tagName: string }) {
           {story.title}
         </h2>
         {story.url ? (
-          <a class="story-url" href={story.url}>
+          <Link class="story-url" href={story.url}>
             {story.url}
-          </a>
+          </Link>
         ) : null}
         <div class="story-meta">
           <span class="story-score">{story.score}</span>
@@ -80,9 +80,9 @@ function StoryOverview(attrs: { story: StoryDTO; tagName: string }) {
             </>
           ) : null}
           {' | '}
-          <a class="story-comments" href={'/item?id=' + story.id}>
+          <Link class="story-comments" href={'/item?id=' + story.id}>
             {story.descendants}
-          </a>
+          </Link>
         </div>
       </>,
     ],

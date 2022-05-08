@@ -102,11 +102,11 @@ let AppAST: Element = [
       <Flush />
       <footer>
         <span class="yclinks">
-          <a href="/guidelines">Guidelines</a>
+          <Link href="/guidelines">Guidelines</Link>
           {' | '}
-          <a href="/faq">FAQ</a>
+          <Link href="/faq">FAQ</Link>
           {' | '}
-          <a href="/lists">Lists</a>
+          <Link href="/lists">Lists</Link>
           {' | '}
           <a href="https://github.com/HackerNews/API">API</a>
           {' | '}

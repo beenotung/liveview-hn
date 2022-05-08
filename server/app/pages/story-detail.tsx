@@ -162,7 +162,7 @@ function StoryItem(attrs: {
           ) : null}
           {time ? (
             <>
-              <a href={'/item?id=' + item.id}>
+              <Link href={'/item?id=' + item.id}>
                 <time
                   class="story-time"
                   datetime={new Date(time).toISOString()}
