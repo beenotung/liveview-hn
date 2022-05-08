@@ -91,6 +91,7 @@ let AppAST: Element = [
             '/news': <StoryList.TopStories />,
             '/item': <StoryDetail />,
             '/user': <Profile />,
+            '/submitted': <StoryList.Submitted />,
             '/newest': <StoryList.NewStories />,
             '/front': <StoryList.BestStories />,
             '/newcomments': <StoryList.Comments />,

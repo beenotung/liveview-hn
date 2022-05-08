@@ -1,6 +1,7 @@
 import { ServerMessage } from '../../../client/index.js'
-import { get } from '../../api.js'
+import { get, getProfile, ProfileDTO } from '../../api.js'
 import { toLocaleDateTimeString } from '../components/datetime.js'
+import { Link } from '../components/router.js'
 import Style from '../components/style.js'
 import { Context, getContext, WsContext } from '../context.js'
 import JSX from '../jsx/jsx.js'
@@ -13,30 +14,6 @@ let style = Style(/* css */ `
 	vertical-align: top;
 }
 `)
-
-type ProfileDTO = {
-  about: string
-  created: number
-  delay: number
-  id: string
-  karma: number
-  submitted?: number[]
-}
-let profilePlaceholder: ProfileDTO = {
-  about: '',
-  created: 0,
-  delay: 0,
-  id: '',
-  karma: 0,
-}
-
-function getProfile(id: string): ProfileDTO {
-  return get<ProfileDTO>(
-    `https://hacker-news.firebaseio.com/v0/user/${id}.json`,
-    profilePlaceholder,
-    updateProfile,
-  )
-}
 
 function updateProfile(profile: ProfileDTO) {
   sessions.forEach(session => {
@@ -70,7 +47,7 @@ function Profile(attrs: {}) {
   if (!id) {
     return <p>Error: Missing id in query</p>
   }
-  let profile = getProfile(id)
+  let profile = getProfile(id, updateProfile)
   return renderProfile(id, profile, context)
 }
 
@@ -106,16 +83,15 @@ function renderProfile(
             <td>about:</td>
             <td>
               <div>
-                <a href="">
+                <Link href={'/submitted?id=' + id}>
                   submissions
                   {profile.submitted ? ` (${profile.submitted.length})` : null}
+                </Link>
+              </div>
+              <div>
+                <a href={`https://news.ycombinator.com/favorites?id=` + id}>
+                  HN Profile
                 </a>
-              </div>
-              <div>
-                <a href="">comments</a>
-              </div>
-              <div>
-                <a href="">favorites</a>
               </div>
             </td>
           </tr>

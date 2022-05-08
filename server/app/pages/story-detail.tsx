@@ -81,6 +81,7 @@ function renderStoryDetail(story: StoryDTO): Element {
                 indent={0}
                 nextId={ids[i + 1]}
                 parentIds={new Set([story.id])}
+                rootId={story.id}
               />
             </>
           ))}
@@ -105,6 +106,7 @@ function StoryItemById(attrs: {
   indent: number
   nextId: number | undefined
   parentIds: Set<number>
+  rootId?: number
 }): Element {
   let context = getContext(attrs)
   let item = getStoryById(attrs.id, story =>
@@ -117,17 +119,17 @@ function StoryItemById(attrs: {
   return <StoryItem item={item} {...attrs} />
 }
 
-function getTitle(id: number): string | null {
+function getRootStory(id: number): { id: number; title: string } {
   for (;;) {
     let story = getStoryById(id, () => {})
     if (story.title) {
-      return story.title
+      return story
     }
     if (story.parent) {
       id = story.parent
       continue
     }
-    return '#' + id
+    return { id, title: '#' + id }
   }
 }
 
@@ -138,11 +140,13 @@ function StoryItem(attrs: {
   parentIds: Set<number>
   topLevel?: boolean
   skipChildren?: boolean
+  rootId?: number
 }): Element {
   let context = getContext(attrs)
   let item = attrs.item
   let time = item.time * 1000
   attrs.parentIds.add(item.id)
+  let rootStory = getRootStory(attrs.rootId || item.id)
   return [
     `div#item-${item.id}.story-item`,
     {
@@ -179,7 +183,7 @@ function StoryItem(attrs: {
                     : '/item?id=' + item.parent
                 }
               >
-                {attrs.topLevel ? 'on: ' + getTitle(item.parent) : 'parent'}
+                {attrs.topLevel ? 'on: ' + rootStory.title : 'parent'}
               </a>
             </>
           ) : null}
@@ -189,18 +193,26 @@ function StoryItem(attrs: {
               <a href={'#' + attrs.nextId}>next</a>
             </>
           ) : null}
-          <div class="story-text">{Raw(item.text)}</div>
-          {attrs.skipChildren
-            ? null
-            : mapArray(item.kids || [], (id, i, ids) => (
-                <StoryItemById
-                  id={id}
-                  indent={attrs.indent + 1}
-                  nextId={ids[i + 1]}
-                  parentIds={attrs.parentIds}
-                />
-              ))}
         </div>
+        <div class="story-text">{Raw(item.text)}</div>
+        <div>
+          <a
+            href={`https://news.ycombinator.com/reply?id=${item.id}&goto=item?id=${rootStory.id}#${item.id}`}
+          >
+            reply
+          </a>
+        </div>
+        {!item.by?<div>{JSON.stringify(item)}</div>:null}
+        {attrs.skipChildren
+          ? null
+          : mapArray(item.kids || [], (id, i, ids) => (
+              <StoryItemById
+                id={id}
+                indent={attrs.indent + 1}
+                nextId={ids[i + 1]}
+                parentIds={attrs.parentIds}
+              />
+            ))}
       </>,
     ],
   ]

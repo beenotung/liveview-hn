@@ -37,6 +37,15 @@ export function get<T>(
   return value
 }
 
+export function getWithMapFn<T, R>(
+  url: string,
+  defaultValue: T,
+  mapFn: (data: T) => R,
+  updateFn: (data: R) => void,
+): R {
+  return mapFn(get<T>(url, defaultValue, data => updateFn(mapFn(data))))
+}
+
 export type StoryDTO = {
   by: string
   descendants: number
@@ -76,4 +85,35 @@ export function getStoryById(
     story.title = story.title || '[deleted]'
   }
   return story
+}
+
+export type ProfileDTO = {
+  about: string
+  created: number
+  delay: number
+  id: string
+  karma: number
+  submitted?: number[]
+}
+let profilePlaceholder: ProfileDTO = {
+  about: '',
+  created: 0,
+  delay: 0,
+  id: '',
+  karma: 0,
+}
+
+export function getProfile(
+  id: string,
+  updateFn: (data: ProfileDTO) => void,
+): ProfileDTO {
+  return get<ProfileDTO>(
+    `https://hacker-news.firebaseio.com/v0/user/${id}.json`,
+    profilePlaceholder,
+    updateFn,
+  )
+}
+
+export type UpdatesDTO = {
+  items: number[]
 }

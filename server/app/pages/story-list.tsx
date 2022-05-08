@@ -1,5 +1,12 @@
 import { ServerMessage } from '../../../client/index.js'
-import { get, getStoryById, StoryDTO } from '../../api.js'
+import {
+  get,
+  getProfile,
+  getStoryById,
+  getWithMapFn,
+  StoryDTO,
+  UpdatesDTO,
+} from '../../api.js'
 import { Flush } from '../components/flush.js'
 import { mapArray } from '../components/fragment.js'
 import StoryOverview from '../components/story-overview.js'
@@ -23,21 +30,43 @@ let style = Style(/* css */ `
 export function genStoryList(options: {
   id: string
   apiUrl: string
+  defaultValue?: any
+  apiMapFn?: (data: any) => number[]
   urlFilter: (url: string) => boolean
 }) {
-  function getStoryList(context: Context) {
-    let ids = get<number[] | { items: number[] }>(options.apiUrl, [], ids => {
-      if (!Array.isArray(ids)) {
-        ids = ids.items
-      }
-      ids = ids.slice(0, 30)
-      updateStoryList(ids, context)
-    })
-    if (!Array.isArray(ids)) {
-      ids = ids.items
+  function getSubmitted(context: Context): number[] {
+    if (context.type === 'static') {
+      throw new Error(
+        "<StoryList/> for submitted list doesn't support static context, it requires routerMatch for item id",
+      )
     }
-    ids = ids.slice(0, 30)
-    return ids
+    let params = new URLSearchParams(context.routerMatch!.search)
+    let id = params.get('id')!
+    if (!id) {
+      return <p>Error: Missing id in query</p>
+    }
+    let profile = getProfile(id, profile =>
+      updateStoryList(profile.submitted?.slice(0, 30) || [], context),
+    )
+    return profile.submitted?.slice(0, 30) || []
+  }
+
+  function getStoryList(context: Context): number[] {
+    if (options.apiUrl === 'user.submitted') {
+      return getSubmitted(context)
+    }
+
+    let ids = options.apiMapFn
+      ? getWithMapFn<any, number[]>(
+          options.apiUrl,
+          options.defaultValue || ([] as number[]),
+          options.apiMapFn,
+          ids => updateStoryList(ids.slice(0, 30), context),
+        )
+      : get<number[]>(options.apiUrl, [], ids =>
+          updateStoryList(ids.slice(0, 30), context),
+        )
+    return ids.slice(0, 30)
   }
 
   function updateStoryList(ids: number[], context: Context) {
@@ -51,7 +80,7 @@ export function genStoryList(options: {
   function updateStory(story: StoryDTO, context: Context) {
     if (context.type !== 'ws') return
     if (!options.urlFilter(context.url)) return
-    let element = <StoryOverview story={story} tagName="li" />
+    let element = renderListItem(story)
     let message: ServerMessage = ['update', nodeToVNode(element, context)]
     context.ws.send(message)
   }
@@ -70,7 +99,7 @@ export function genStoryList(options: {
         style,
         StoryOverview.style,
         StoryDetail.style,
-        <ol class="story-list">
+        <ol>
           {mapArray(ids, id => (
             <>
               <Flush />
@@ -82,9 +111,7 @@ export function genStoryList(options: {
     ]
   }
 
-  function StoryOverviewById(attrs: { id: number }) {
-    let context = getContext(attrs)
-    let story = getStoryById(attrs.id, story => updateStory(story, context))
+  function renderListItem(story: StoryDTO) {
     return story.title ? (
       <StoryOverview story={story} tagName="li" />
     ) : (
@@ -97,6 +124,12 @@ export function genStoryList(options: {
         skipChildren
       />
     )
+  }
+
+  function StoryOverviewById(attrs: { id: number }) {
+    let context = getContext(attrs)
+    let story = getStoryById(attrs.id, story => updateStory(story, context))
+    return renderListItem(story)
   }
 
   return StoryList
@@ -121,6 +154,7 @@ export default {
   Comments: genStoryList({
     id: 'newcomments',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/updates.json',
+    apiMapFn: (data: UpdatesDTO) => data.items,
     urlFilter: (url: string) => url === '/newcomments',
   }),
   AskStories: genStoryList({
@@ -137,5 +171,10 @@ export default {
     id: 'ask',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/jobstories.json',
     urlFilter: (url: string) => url === '/job',
+  }),
+  Submitted: genStoryList({
+    id: 'submitted',
+    apiUrl: 'user.submitted',
+    urlFilter: (url: string) => url === '/submitted',
   }),
 }
