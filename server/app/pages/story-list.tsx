@@ -103,7 +103,9 @@ export function genStoryList(options: {
           {mapArray(ids, id => (
             <>
               <Flush />
-              <StoryOverviewById id={id} />
+              <li>
+                <StoryOverviewById id={id} />
+              </li>
             </>
           ))}
         </ol>,
@@ -113,7 +115,7 @@ export function genStoryList(options: {
 
   function renderListItem(story: StoryDTO) {
     return story.title ? (
-      <StoryOverview story={story} tagName="li" />
+      <StoryOverview story={story} />
     ) : (
       <StoryDetail.StoryItem
         item={story}

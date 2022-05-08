@@ -72,7 +72,7 @@ function renderStoryDetail(story: StoryDTO): Element {
         <p>[deleted]</p>
       ) : story.title ? (
         <>
-          <StoryOverview story={story} tagName="div" />
+          <StoryOverview story={story} />
           {mapArray(story.kids || [], (id, i, ids) => (
             <>
               <Flush />
@@ -148,12 +148,12 @@ function StoryItem(attrs: {
   attrs.parentIds.add(item.id)
   let rootStory = getRootStory(attrs.rootId || item.id)
   return [
-    `div#item-${item.id}.story-item`,
+    `div#item-${item.id}`,
     {
       style: `margin-left: ${attrs.indent * 40}px`,
     },
     [
-      <>
+      <div class="story-item">
         <div class="story-meta">
           {item.by ? (
             <span class="story-by">
@@ -219,7 +219,7 @@ function StoryItem(attrs: {
                 parentIds={attrs.parentIds}
               />
             ))}
-      </>,
+      </div>,
     ],
   ]
 }
