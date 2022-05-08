@@ -24,7 +24,7 @@ export function get<T>(
     })
   }
 
-  if (!cache || cache.exp > now) {
+  if (!cache || cache.exp < now) {
     fetch(url)
       .then(res => res.json())
       .then(json => {
