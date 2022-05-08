@@ -195,14 +195,20 @@ function StoryItem(attrs: {
           ) : null}
         </div>
         <div class="story-text">{Raw(item.text)}</div>
+
         <div>
-          <a
-            href={`https://news.ycombinator.com/reply?id=${item.id}&goto=item?id=${rootStory.id}#${item.id}`}
-          >
-            reply
-          </a>
+          {item.by ? (
+            <a
+              href={`https://news.ycombinator.com/reply?id=${item.id}&goto=item?id=${rootStory.id}#${item.id}`}
+            >
+              reply
+            </a>
+          ) : item.type === 'loading' ? (
+            'loading #' + item.id
+          ) : (
+            JSON.stringify(item)
+          )}
         </div>
-        {!item.by?<div>{JSON.stringify(item)}</div>:null}
         {attrs.skipChildren
           ? null
           : mapArray(item.kids || [], (id, i, ids) => (
