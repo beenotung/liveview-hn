@@ -170,7 +170,7 @@ function StoryItem(attrs: {
                 >
                   <DateTimeText time={time} relativeTimeThreshold={YEAR} />
                 </time>
-              </a>
+              </Link>
             </>
           ) : null}
           {item.parent ? (
