@@ -1,13 +1,25 @@
-import { format_datetime } from '@beenotung/tslib/format.js'
+import {
+  format_relative_time,
+  round_time_diff,
+} from '@beenotung/tslib/format.js'
 import { getContext } from '../context.js'
-import { getWSSession } from '../session.js'
 import { debugLog } from '../../debug.js'
 import { TimezoneDate } from 'timezone-date.ts'
 
-let log = debugLog('datetime.tsx')
+let log = debugLog('datetime.ts')
 log.enabled = true
 
-export function DateTimeText(attrs: { time: number }) {
+export function DateTimeText(attrs: {
+  time: number
+  relativeTimeThreshold?: number
+}) {
+  if (attrs.relativeTimeThreshold !== undefined) {
+    let diff = attrs.time - Date.now()
+    if (Math.abs(diff) < attrs.relativeTimeThreshold) {
+      return format_relative_time(round_time_diff(diff))
+    }
+  }
+
   let context = getContext(attrs)
   let locales: string | undefined
   let timeZone: string | undefined
