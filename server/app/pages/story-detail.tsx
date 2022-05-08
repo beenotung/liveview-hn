@@ -176,7 +176,7 @@ function StoryItem(attrs: {
           {item.parent ? (
             <>
               {' | '}
-              <a
+              <Link
                 href={
                   attrs.parentIds.has(item.parent)
                     ? '#' + item.parent
@@ -184,7 +184,7 @@ function StoryItem(attrs: {
                 }
               >
                 {attrs.topLevel ? 'on: ' + rootStory.title : 'parent'}
-              </a>
+              </Link>
             </>
           ) : null}
           {attrs.nextId ? (
