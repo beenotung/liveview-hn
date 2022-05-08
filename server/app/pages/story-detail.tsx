@@ -73,6 +73,7 @@ function renderStoryDetail(story: StoryDTO): Element {
           indent={0}
           nextId={undefined}
           parentIds={new Set([story.id])}
+          topLevel
         />
       ) : (
         <>
@@ -111,11 +112,27 @@ function StoryItemById(attrs: {
   return <StoryItem item={item} {...attrs} />
 }
 
+function getTitle(id: number): string | null {
+  for (;;) {
+    let story = getStoryById(id, () => {})
+    if (story.title) {
+      return story.title
+    }
+    if (story.parent) {
+      id = story.parent
+      continue
+    }
+    return null
+  }
+}
+
 function StoryItem(attrs: {
   item: StoryDTO
   indent: number
   nextId: number | undefined
   parentIds: Set<number>
+  topLevel?: boolean
+  skipChildren?: boolean
 }): Element {
   let context = getContext(attrs)
   let item = attrs.item
@@ -153,7 +170,7 @@ function StoryItem(attrs: {
                     : '/item?id=' + item.parent
                 }
               >
-                parent
+                {attrs.topLevel ? 'on: ' + getTitle(item.parent) : 'parent'}
               </a>
             </>
           ) : null}
@@ -164,18 +181,20 @@ function StoryItem(attrs: {
             </>
           ) : null}
           <div class="story-text">{Raw(item.text)}</div>
-          {mapArray(item.kids || [], (id, i, ids) => (
-            <StoryItemById
-              id={id}
-              indent={attrs.indent + 1}
-              nextId={ids[i + 1]}
-              parentIds={attrs.parentIds}
-            />
-          ))}
+          {attrs.skipChildren
+            ? null
+            : mapArray(item.kids || [], (id, i, ids) => (
+                <StoryItemById
+                  id={id}
+                  indent={attrs.indent + 1}
+                  nextId={ids[i + 1]}
+                  parentIds={attrs.parentIds}
+                />
+              ))}
         </div>
       </>,
     ],
   ]
 }
 
-export default StoryDetail
+export default Object.assign(StoryDetail, { style, StoryItem })

@@ -6,7 +6,7 @@ import type { ExpressContext, WsContext } from './context.js'
 import type { Element } from './jsx/types'
 import { nodeToHTML, writeNode } from './jsx/html.js'
 import { sendHTMLHeader } from './express.js'
-import { Redirect, Switch } from './components/router.js'
+import { Link, Redirect, Switch } from './components/router.js'
 import { OnWsMessage } from '../ws/wss.js'
 import { dispatchUpdate } from './jsx/dispatch.js'
 import { EarlyTerminate } from './helpers.js'
@@ -31,9 +31,9 @@ import Stats from './stats.js'
 import { MuteConsole } from './components/script.js'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import News from './pages/news.js'
 import NotImplemented from './pages/not-implemented.js'
 import StoryDetail from './pages/story-detail.js'
+import StoryList from './pages/story-list.js'
 
 let template = loadTemplate<index>('index')
 
@@ -53,30 +53,30 @@ let AppAST: Element = [
     <>
       {Style(readFileSync(join('template', 'style.css')).toString())}
       <header>
-        <a href="/">
+        <Link href="/">
           <img
             src="https://news.ycombinator.com/y18.gif"
             style="border:1px white solid;"
             width="18"
             height="18"
           />
-        </a>
+        </Link>
         <span class="pagetop">
           {' '}
           <b class="hnname">
-            <a href="/news">Hacker News</a>
+            <Link href="/news">Hacker News</Link>
           </b>{' '}
-          <a href="/newest">new</a>
+          <Link href="/newest">new</Link>
           {' | '}
-          <a href="/front">past</a>
+          <Link href="/front">past</Link>
           {' | '}
-          <a href="/newcomments">comments</a>
+          <Link href="/newcomments">comments</Link>
           {' | '}
-          <a href="/ask">ask</a>
+          <Link href="/ask">ask</Link>
           {' | '}
-          <a href="/show">show</a>
+          <Link href="/show">show</Link>
           {' | '}
-          <a href="/jobs">jobs</a>
+          <Link href="/jobs">jobs</Link>
           {' | '}
           <a href="https://news.ycombinator.com/submit">submit</a>
         </span>
@@ -86,12 +86,12 @@ let AppAST: Element = [
       <main>
         {Switch(
           {
-            '/': <News />,
-            '/news': <News />,
+            '/': <StoryList.TopStories />,
+            '/news': <StoryList.TopStories />,
             '/item': <StoryDetail />,
-            '/newest': <NotImplemented />,
-            '/font': <NotImplemented />,
-            '/newcomments': <NotImplemented />,
+            '/newest': <StoryList.NewStories />,
+            '/front': <StoryList.BestStories />,
+            '/newcomments': <StoryList.Comments />,
             '/ask': <NotImplemented />,
             '/show': <NotImplemented />,
             '/jobs': <NotImplemented />,
@@ -114,6 +114,9 @@ let AppAST: Element = [
           <a href="https://github.com/HackerNews/API">API</a>
           {' | '}
           <a href="https://github.com/beenotung/liveview-hn">Repo</a>
+          {' | '}
+          Powered by{' '}
+          <a href="https://github.com/beenotung/ts-liveview">ts-liveview</a>
         </span>
       </footer>
     </>,
