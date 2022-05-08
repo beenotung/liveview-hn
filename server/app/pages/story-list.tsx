@@ -6,8 +6,19 @@ import StoryOverview from '../components/story-overview.js'
 import Style from '../components/style.js'
 import { Context, getContext } from '../context.js'
 import JSX from '../jsx/jsx.js'
+import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
 import StoryDetail from './story-detail.js'
+
+let style = Style(/* css */ `
+.story-list ol {
+  line-height: 1.25rem;
+  font-size: 1rem;
+}
+.story-list .story-item {
+	margin-bottom: 1.25rem;
+}
+`)
 
 export function genStoryList(options: {
   id: string
@@ -32,17 +43,8 @@ export function genStoryList(options: {
   function updateStoryList(ids: number[], context: Context) {
     if (context.type !== 'ws') return
     if (!options.urlFilter(context.url)) return
-    let stories = ids.map(id =>
-      getStoryById(id, story => updateStory(story, context)),
-    )
-    let elements = stories.map(story =>
-      nodeToVNode(<StoryOverview story={story} tagName="li" />, context),
-    )
-    let message: ServerMessage = [
-      'update-in',
-      `#${options.id} .story-list`,
-      [elements],
-    ]
+    let element = nodeToVNode(renderStoryList(ids), context)
+    let message: ServerMessage = ['update', element]
     context.ws.send(message)
   }
 
@@ -54,22 +56,20 @@ export function genStoryList(options: {
     context.ws.send(message)
   }
 
-  function StoryList(attrs: {}) {
+  function StoryList(attrs: {}): Element {
     let context = getContext(attrs)
     let ids = getStoryList(context)
-    return (
-      <div id={options.id} class="story-list">
-        {Style(/* css */ `
-.story-list ol {
-  line-height: 1.25rem;
-  font-size: 1rem;
-}
-.story-list .story-item {
-	margin-bottom: 1.25rem;
-}
-`)}
-        {StoryOverview.style}
-        {StoryDetail.style}
+    return renderStoryList(ids)
+  }
+
+  function renderStoryList(ids: number[]): Element {
+    return [
+      `#${options.id}.story-list`,
+      {},
+      [
+        style,
+        StoryOverview.style,
+        StoryDetail.style,
         <ol class="story-list">
           {mapArray(ids, id => (
             <>
@@ -77,9 +77,9 @@ export function genStoryList(options: {
               <StoryOverviewById id={id} />
             </>
           ))}
-        </ol>
-      </div>
-    )
+        </ol>,
+      ],
+    ]
   }
 
   function StoryOverviewById(attrs: { id: number }) {
