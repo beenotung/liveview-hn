@@ -2,6 +2,8 @@
 
 Hacker News Reader powered by [ts-liveview](./toolkit.md)
 
+Hosted on: https://hn.liveviews.cc
+
 This is a an example application of ts-liveview.
 
 The data is fetched from [the official API](https://github.com/HackerNews/API) in the backend and cached in the server.
