@@ -38,7 +38,7 @@ function StoryDetail(props: {}): Element {
   let context = getContext(props)
   if (context.type === 'static') {
     throw new Error(
-      "Story Component doesn't support static context, it requires routerMatch for item id",
+      "<StoryDetail/> Component doesn't support static context, it requires routerMatch for item id",
     )
   }
   let params = new URLSearchParams(context.routerMatch!.search)
