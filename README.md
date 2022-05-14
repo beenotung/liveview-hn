@@ -4,9 +4,24 @@ Hacker News Reader powered by [ts-liveview](./toolkit.md)
 
 Hosted on: https://hn.liveviews.cc
 
+## About
+
 This is a an example application of ts-liveview.
 
 The data is fetched from [the official API](https://github.com/HackerNews/API) in the backend and cached in the server.
+
+## Features
+
+- Dark theme
+- Limited page width to enhance readability
+- Works without javascript on the client-side
+- Auto-update when new story is shared
+
+
+## Screenshots
+
+![Screenshot of home page](./screenshot/home-page.png "Screenshot of liveview-hn home page")
+![Screenshot of discussion page](./screenshot/item-page.png "Screenshot of discussion page")
 
 ## License
 
