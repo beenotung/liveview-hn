@@ -1,18 +1,9 @@
 import { ServerMessage } from '../../../client/index.js'
 import { getProfile, ProfileDTO } from '../../api.js'
-import DateTimeText, {
-  formatDateTimeText,
-  toLocaleDateTimeString,
-} from '../components/datetime.js'
+import { toLocaleDateTimeString } from '../components/datetime.js'
 import { Link } from '../components/router.js'
 import Style from '../components/style.js'
-import {
-  Context,
-  DynamicContext,
-  getContext,
-  RouterMatch,
-  WsContext,
-} from '../context.js'
+import { Context, DynamicContext, getContext } from '../context.js'
 import JSX from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
