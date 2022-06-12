@@ -2,7 +2,12 @@ import { capitalize } from '@beenotung/tslib/string.js'
 import { Router } from 'url-router.ts'
 import { config } from '../config.js'
 import { Redirect } from './components/router.js'
-import type { ExpressContext, RouterContext, WsContext } from './context.js'
+import type {
+  DynamicContext,
+  ExpressContext,
+  RouterContext,
+  WsContext,
+} from './context.js'
 import JSX from './jsx/jsx.js'
 import type { Node } from './jsx/types'
 import UserAgents from './pages/user-agents.js'
@@ -37,7 +42,7 @@ export type StaticPageRoute = {
   status?: number
 }
 export type DynamicPageRoute = {
-  resolve: (routeMatch: PageRoute) => StaticPageRoute
+  resolve: (context: DynamicContext) => StaticPageRoute
 }
 
 export type MenuRoute = {
@@ -74,9 +79,7 @@ let routeDict: Record<string, PageRoute> = {
     node: <StoryDetail />,
   },
   '/user': {
-    title: title('Profile: user'),
-    description: 'Profile of user',
-    node: <Profile />,
+    resolve: Profile.resolve,
   },
   '/submitted': {
     title: title("User's submissions"),
@@ -170,7 +173,7 @@ Object.entries(redirectDict).forEach(([url, href]) =>
   }),
 )
 
-export function matchRoute(context: RouterContext): PageRouteMatch {
+export function matchRoute(context: DynamicContext): PageRouteMatch {
   let match = pageRouter.route(context.url)
   let route: PageRoute = match
     ? match.value
@@ -183,13 +186,14 @@ export function matchRoute(context: RouterContext): PageRouteMatch {
   if (route.streaming === undefined) {
     route.streaming = StreamingByDefault
   }
+  context.routerMatch = match
   if ('resolve' in route) {
-    return Object.assign(route, route.resolve(route))
+    return Object.assign(route, route.resolve(context))
   }
   return route
 }
 
-export function getContextSearchParams(context: ExpressContext | WsContext) {
+export function getContextSearchParams(context: DynamicContext) {
   return new URLSearchParams(
     context.routerMatch?.search || context.url.split('?').pop(),
   )

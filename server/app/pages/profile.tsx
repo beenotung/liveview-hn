@@ -1,13 +1,22 @@
 import { ServerMessage } from '../../../client/index.js'
 import { getProfile, ProfileDTO } from '../../api.js'
-import { toLocaleDateTimeString } from '../components/datetime.js'
+import DateTimeText, {
+  formatDateTimeText,
+  toLocaleDateTimeString,
+} from '../components/datetime.js'
 import { Link } from '../components/router.js'
 import Style from '../components/style.js'
-import { Context, getContext, WsContext } from '../context.js'
+import {
+  Context,
+  DynamicContext,
+  getContext,
+  RouterMatch,
+  WsContext,
+} from '../context.js'
 import JSX from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
-import { getContextSearchParams } from '../routes.js'
+import { getContextSearchParams, StaticPageRoute, title } from '../routes.js'
 import { sessions, sessionToContext } from '../session.js'
 
 let style = Style(/* css */ `
@@ -98,4 +107,34 @@ function renderProfile(
   ]
 }
 
-export default Profile
+function resolve(context: DynamicContext): StaticPageRoute {
+  let params = getContextSearchParams(context)
+  let id = params.get('id')
+  if (!id) {
+    return {
+      title: title('Bad Request: Missing user id'),
+      description: 'Unknown User Profile Page',
+      node: <p>Error: Missing id in request query</p>,
+    }
+  }
+  let profile = getProfile(id, updateProfile)
+  let description = `User profile page of ${id}.`
+  if (profile.created) {
+    let since: string = toLocaleDateTimeString(profile.created * 1000, context)
+    description += ` Created since ${since}.`
+  }
+  let submissions = profile.submitted?.length || 0
+  if (submissions) {
+    description += ` ${submissions} submissions.`
+  }
+  if (profile.karma) {
+    description += ` ${profile.karma} karma.`
+  }
+  return {
+    title: title(`${id}'s Profile`),
+    description,
+    node: <Profile />,
+  }
+}
+
+export default { resolve }
