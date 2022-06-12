@@ -34,6 +34,7 @@ export type StaticPageRoute = {
   title: string
   node: Node
   description: string
+  status?: number
 }
 export type DynamicPageRoute = {
   resolve: (routeMatch: PageRoute) => StaticPageRoute
@@ -47,7 +48,7 @@ export type MenuRoute = {
 
 export type PageRouteMatch = PageRouteOptions & StaticPageRoute
 
-function title(page: string) {
+export function title(page: string) {
   return page + ' | ' + config.site_name
 }
 
@@ -117,18 +118,21 @@ let routeDict: Record<string, PageRoute> = {
   '/guidelines': {
     title: title('Guidelines'),
     description: `Anything that good hackers would find interesting. That includes more than hacking and startups. In a sentence: anything that gratifies one's intellectual curiosity.`,
-    node: <NotImplemented />,
+    node: NotImplemented,
+    status: 501,
   },
   '/faq': {
     title: title('FAQ'),
     description: 'Hacker News FAQ',
-    node: <NotImplemented />,
+    node: NotImplemented,
+    status: 501,
   },
   '/lists': {
     title: title('Lists'),
     description:
       'Varies list of Hacker News stories ordered by different criteria',
-    node: <NotImplemented />,
+    node: NotImplemented,
+    status: 501,
   },
   '/user-agents': {
     title: 'User Agents of Visitors',
@@ -174,6 +178,7 @@ export function matchRoute(context: RouterContext): PageRouteMatch {
         title: title('Page Not Found'),
         description: 'This page is not found. Probably due to outdated menu.',
         node: NotMatch,
+        status: 404,
       }
   if (route.streaming === undefined) {
     route.streaming = StreamingByDefault

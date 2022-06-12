@@ -114,7 +114,7 @@ export type ClientMessage =
 
 export type ServerMessage =
   | ['update', VElement, title?]
-  | ['update-in', selector, VNode]
+  | ['update-in', selector, VNode, title?]
   | ['append', selector, VNode]
   | ['remove', selector]
   | ['update-text', selector, string | number]
@@ -129,9 +129,15 @@ export type ServerMessage =
 function onServerMessage(message: ServerMessage) {
   switch (message[0]) {
     case 'update':
-      updateElement(message[1], message[2])
+      if (message[2]) {
+        document.title = message[2]
+      }
+      updateElement(message[1])
       break
     case 'update-in':
+      if (message[3]) {
+        document.title = message[3]
+      }
       updateNode(message[1], message[2])
       break
     case 'append':
