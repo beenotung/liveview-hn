@@ -228,7 +228,7 @@ function StoryItem(attrs: StoryItemAttrs): Element {
             </>
           ) : null}
         </div>
-        <div class="story-text">{Raw(item.text)}</div>
+        {item.text ? <div class="story-text">{Raw(item.text)}</div> : null}
 
         <div>
           {item.by ? (
