@@ -5,6 +5,7 @@ body {
   color: #c7a775;
   font: 21px/31px 'HelveticaNeue', 'Helvetica Neue', Helvetica, Arial,
     sans-serif;
+  --text-color: #c7a775;
 }
 
 h1,
