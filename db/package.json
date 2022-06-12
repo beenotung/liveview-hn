@@ -15,8 +15,8 @@
   },
   "devDependencies": {
     "@types/integer": "^4.0.1",
-    "quick-erd": "^2.2.3",
     "@types/node": "^16.11.36",
+    "quick-erd": "^2.2.3",
     "ts-node": "^10.8.0",
     "typescript": "^4.7.2"
   }
