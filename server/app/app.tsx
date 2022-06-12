@@ -20,7 +20,7 @@ import Stats from './stats.js'
 import { MuteConsole } from './components/script.js'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { matchRoute, PageRouteMatch, redirectDict } from './routes.js'
+import { matchRoute, redirectDict, StaticPageRoute } from './routes.js'
 import NotMatch from './pages/not-match.js'
 
 let template = loadTemplate<index>('index')
@@ -145,17 +145,17 @@ appRouter.use((req, res, next) => {
     res.status(404)
   }
 
-  if (route.streaming === false) {
-    responseHTML(res, context, route)
-  } else {
+  if (route.streaming) {
     streamHTML(res, context, route)
+  } else {
+    responseHTML(res, context, route)
   }
 })
 
 function responseHTML(
   res: Response,
   context: ExpressContext,
-  route: PageRouteMatch,
+  route: StaticPageRoute,
 ) {
   let app: string
   try {
@@ -185,7 +185,7 @@ function responseHTML(
 function streamHTML(
   res: Response,
   context: ExpressContext,
-  route: PageRouteMatch,
+  route: StaticPageRoute,
 ) {
   let appPlaceholder = '<!-- app -->'
   let html = template({

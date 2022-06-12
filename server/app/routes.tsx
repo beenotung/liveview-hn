@@ -2,7 +2,7 @@ import { capitalize } from '@beenotung/tslib/string.js'
 import { Router } from 'url-router.ts'
 import { config } from '../config.js'
 import { Redirect } from './components/router.js'
-import { RouterContext } from './context.js'
+import type { ExpressContext, RouterContext, WsContext } from './context.js'
 import JSX from './jsx/jsx.js'
 import type { Node } from './jsx/types'
 import UserAgents from './pages/user-agents.js'
@@ -21,15 +21,23 @@ export function getTitle(url: string): string {
 
 const StreamingByDefault = true
 
-export type PageRouteMatch = {
-  title?: string
-  node: Node
-  description?: string
+export type PageRoute = PageRouteOptions & (StaticPageRoute | DynamicPageRoute)
+
+export type PageRouteOptions = {
   // streaming is enabled by default
-  // HTTP headers cannot be set  when streaming
+  // HTTP headers cannot be set when streaming
   // If you need to set cookies or apply redirection, you may use an express middleware before the generic app route
   streaming?: boolean
 } & Partial<MenuRoute>
+
+export type StaticPageRoute = {
+  title: string
+  node: Node
+  description: string
+}
+export type DynamicPageRoute = {
+  resolve: (routeMatch: PageRoute) => StaticPageRoute
+}
 
 export type MenuRoute = {
   url: string
@@ -37,9 +45,7 @@ export type MenuRoute = {
   menuUrl: string // optional, default to be same as PageRoute.url
 }
 
-export type PageRoute = {
-  url: string
-} & PageRouteMatch
+export type PageRouteMatch = PageRouteOptions & StaticPageRoute
 
 function title(page: string) {
   return page + ' | ' + config.site_name
@@ -50,7 +56,7 @@ function title(page: string) {
 // or invoke functional component with x-html tag, e.g. `<Editor/>
 
 // TODO direct support alternative urls instead of having to repeat the entry
-let routeDict: Record<string, PageRouteMatch> = {
+let routeDict: Record<string, PageRoute> = {
   '/': {
     title: config.site_name,
     description: config.site_description,
@@ -110,13 +116,18 @@ let routeDict: Record<string, PageRouteMatch> = {
   },
   '/guidelines': {
     title: title('Guidelines'),
+    description: `Anything that good hackers would find interesting. That includes more than hacking and startups. In a sentence: anything that gratifies one's intellectual curiosity.`,
     node: <NotImplemented />,
   },
   '/faq': {
     title: title('FAQ'),
+    description: 'Hacker News FAQ',
     node: <NotImplemented />,
   },
   '/lists': {
+    title: title('Lists'),
+    description:
+      'Varies list of Hacker News stories ordered by different criteria',
     node: <NotImplemented />,
   },
   '/user-agents': {
@@ -147,20 +158,34 @@ Object.entries(routeDict).forEach(([url, route]) => {
 })
 
 Object.entries(redirectDict).forEach(([url, href]) =>
-  pageRouter.add(url, { url, node: <Redirect href={href} /> }),
+  pageRouter.add(url, {
+    url,
+    title: title('Redirection Page'),
+    description: 'Redirect to ' + url,
+    node: <Redirect href={href} />,
+  }),
 )
 
 export function matchRoute(context: RouterContext): PageRouteMatch {
   let match = pageRouter.route(context.url)
-  if (match && match.value.streaming === undefined) {
-    match.value.streaming = StreamingByDefault
-  }
-  context.routerMatch = match
-  return match
+  let route: PageRoute = match
     ? match.value
     : {
         title: title('Page Not Found'),
+        description: 'This page is not found. Probably due to outdated menu.',
         node: NotMatch,
-        streaming: StreamingByDefault,
       }
+  if (route.streaming === undefined) {
+    route.streaming = StreamingByDefault
+  }
+  if ('resolve' in route) {
+    return Object.assign(route, route.resolve(route))
+  }
+  return route
+}
+
+export function getContextSearchParams(context: ExpressContext | WsContext) {
+  return new URLSearchParams(
+    context.routerMatch?.search || context.url.split('?').pop(),
+  )
 }

@@ -7,6 +7,7 @@ import { Context, getContext, WsContext } from '../context.js'
 import JSX from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
+import { getContextSearchParams } from '../routes.js'
 import { sessions, sessionToContext } from '../session.js'
 
 let style = Style(/* css */ `
@@ -38,8 +39,8 @@ function Profile(attrs: {}) {
       "<Profile/> Component doesn't support static context, it requires routerMatch for item id",
     )
   }
-  let params = new URLSearchParams(context.routerMatch!.search)
-  let id = params.get('id')!
+  let params = getContextSearchParams(context)
+  let id = params.get('id')
   if (!id) {
     return <p>Error: Missing id in query</p>
   }

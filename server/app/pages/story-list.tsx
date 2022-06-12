@@ -17,6 +17,7 @@ import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
 import StoryDetail from './story-detail.js'
 import { sessions, sessionToContext } from '../session.js'
+import { getContextSearchParams } from '../routes.js'
 
 let style = Style(/* css */ `
 .story-list ol {
@@ -41,7 +42,7 @@ export function genStoryList(options: {
         "<StoryList/> for submitted list doesn't support static context, it requires routerMatch for item id",
       )
     }
-    let params = new URLSearchParams(context.routerMatch!.search)
+    let params = getContextSearchParams(context)
     let id = params.get('id')!
     if (!id) {
       return <p>Error: Missing id in query</p>

@@ -13,6 +13,7 @@ import { Raw } from '../components/raw.js'
 import { Link } from '../components/router.js'
 import { sessions, sessionToContext } from '../session.js'
 import { ServerMessage } from '../../../client/index.js'
+import { getContextSearchParams } from '../routes.js'
 
 function updateStoryDetail(story: StoryDTO, currentUrl: string) {
   sessions.forEach(session => {
@@ -54,7 +55,7 @@ function StoryDetail(props: {}): Element {
       "<StoryDetail/> Component doesn't support static context, it requires routerMatch for item id",
     )
   }
-  let params = new URLSearchParams(context.routerMatch!.search)
+  let params = getContextSearchParams(context)
   let id = +params.get('id')!
   if (!id) {
     return <p>Error: Missing id in query</p>
