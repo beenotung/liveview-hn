@@ -1,4 +1,4 @@
-import {
+import type {
   Fragment,
   Raw,
   VNode,
@@ -6,14 +6,20 @@ import {
   VElement,
   VNodeList,
   props,
+  title,
 } from './types'
+
+const win: any = window
+const origin = location.origin
 
 function findAndApplyRedirect(root: ParentNode) {
   root.querySelectorAll('a[data-live=redirect]').forEach(e => {
     let a = e as HTMLAnchorElement
     let title = a.title || document.title
-    history.replaceState(null, title, a.href)
+    const href = a.href.replace(origin, '')
+    history.replaceState(null, title, href)
     a.remove()
+    win.emit(href)
   })
 }
 
@@ -21,7 +27,10 @@ window.addEventListener('DOMContentLoaded', () => {
   findAndApplyRedirect(document)
 })
 
-export function updateElement(element: VElement) {
+export function updateElement(element: VElement, title: title | undefined) {
+  if (title) {
+    document.title = title
+  }
   let selector = element[0]
   let e = document.querySelector(selector)
   if (!e) {
@@ -83,9 +92,9 @@ export function updateText(selector: string, text: string | number) {
   e.textContent = text as string
 }
 
-export function updateAllText(selector: string, text: string) {
+export function updateAllText(selector: string, text: string | number) {
   document.querySelectorAll(selector).forEach(e => {
-    e.textContent = text
+    e.textContent = text as string
   })
 }
 
@@ -250,8 +259,8 @@ function createChild(e: Element, node: VNode) {
   if (node[0] === 'raw') {
     node = node as Raw
     const fragment = document.createRange().createContextualFragment(node[1])
-    e.appendChild(fragment)
     findAndApplyRedirect(fragment)
+    e.appendChild(fragment)
     return
   }
   if (Array.isArray(node[0])) {

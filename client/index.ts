@@ -1,4 +1,11 @@
-import type { attrs, props, selector, VElement, VNode } from './jsx/types'
+import type {
+  attrs,
+  props,
+  selector,
+  title,
+  VElement,
+  VNode,
+} from './jsx/types'
 import {
   appendNode,
   removeNode,
@@ -106,22 +113,23 @@ export type ClientMessage =
   | [url: string, data?: any]
 
 export type ServerMessage =
-  | ['update', VElement]
+  | ['update', VElement, title?]
   | ['update-in', selector, VNode]
   | ['append', selector, VNode]
   | ['remove', selector]
   | ['update-text', selector, string | number]
-  | ['update-all-text', selector, string]
+  | ['update-all-text', selector, string | number]
   | ['update-attrs', selector, attrs]
   | ['update-props', selector, props]
   | ['set-value', selector, string | number]
   | ['batch', ServerMessage[]]
   | ['set-cookie', string]
+  | ['set-title', title]
 
 function onServerMessage(message: ServerMessage) {
   switch (message[0]) {
     case 'update':
-      updateElement(message[1])
+      updateElement(message[1], message[2])
       break
     case 'update-in':
       updateNode(message[1], message[2])
@@ -152,6 +160,9 @@ function onServerMessage(message: ServerMessage) {
       break
     case 'set-cookie':
       document.cookie = message[1]
+      break
+    case 'set-title':
+      document.title = message[1]
       break
     default:
       console.error('unknown server message:', message)

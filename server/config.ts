@@ -18,6 +18,8 @@ export let config = {
   port: env.PORT,
   require_https: true,
   cookie_secret: env.COOKIE_SECRET,
+  site_name: 'Liveview Hacker News',
+  site_description: 'Hacker News Reader - Demo site powered by ts-liveview',
 }
 
 if (env.BEHIND_HTTPS_PROXY === 'true') {

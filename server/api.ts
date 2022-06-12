@@ -1,7 +1,7 @@
 import { SECOND } from '@beenotung/tslib/time.js'
 import { find } from 'better-sqlite3-proxy'
 import fetch from 'node-fetch'
-import { proxy } from './db.js'
+import { proxy } from '../db/proxy.js'
 
 export function get<T>(
   url: string,
