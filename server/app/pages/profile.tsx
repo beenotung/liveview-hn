@@ -1,5 +1,5 @@
 import { ServerMessage } from '../../../client/index.js'
-import { get, getProfile, ProfileDTO } from '../../api.js'
+import { getProfile, ProfileDTO } from '../../api.js'
 import { toLocaleDateTimeString } from '../components/datetime.js'
 import { Link } from '../components/router.js'
 import Style from '../components/style.js'
@@ -7,7 +7,7 @@ import { Context, getContext, WsContext } from '../context.js'
 import JSX from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
-import { sessions } from '../session.js'
+import { sessions, sessionToContext } from '../session.js'
 
 let style = Style(/* css */ `
 #profile td {
@@ -16,16 +16,12 @@ let style = Style(/* css */ `
 `)
 
 function updateProfile(profile: ProfileDTO) {
+  let url = '/user?id=' + profile.id
   sessions.forEach(session => {
-    if (session.url !== '/user?id=' + profile.id) {
+    if (session.url !== url) {
       return
     }
-    let context: WsContext = {
-      type: 'ws',
-      session,
-      ws: session.ws,
-      url: session.url,
-    }
+    let context = sessionToContext(session, url)
     let element = nodeToVNode(
       renderProfile(profile.id, profile, context),
       context,

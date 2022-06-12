@@ -16,6 +16,7 @@ import JSX from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
 import StoryDetail from './story-detail.js'
+import { sessions, sessionToContext } from '../session.js'
 
 let style = Style(/* css */ `
 .story-list ol {
@@ -32,7 +33,7 @@ export function genStoryList(options: {
   apiUrl: string
   defaultValue?: any
   apiMapFn?: (data: any) => number[]
-  urlFilter: (url: string) => boolean
+  url: string
 }) {
   function getSubmitted(context: Context): number[] {
     if (context.type === 'static') {
@@ -46,7 +47,7 @@ export function genStoryList(options: {
       return <p>Error: Missing id in query</p>
     }
     let profile = getProfile(id, profile =>
-      updateStoryList(profile.submitted?.slice(0, 30) || [], context),
+      updateStoryList(profile.submitted?.slice(0, 30) || []),
     )
     return profile.submitted?.slice(0, 30) || []
   }
@@ -61,28 +62,36 @@ export function genStoryList(options: {
           options.apiUrl,
           options.defaultValue || ([] as number[]),
           options.apiMapFn,
-          ids => updateStoryList(ids.slice(0, 30), context),
+          ids => updateStoryList(ids.slice(0, 30)),
         )
       : get<number[]>(options.apiUrl, [], ids =>
-          updateStoryList(ids.slice(0, 30), context),
+          updateStoryList(ids.slice(0, 30)),
         )
     return ids.slice(0, 30)
   }
 
-  function updateStoryList(ids: number[], context: Context) {
-    if (context.type !== 'ws') return
-    if (!options.urlFilter(context.url)) return
-    let element = nodeToVNode(renderStoryList(ids), context)
-    let message: ServerMessage = ['update', element]
-    context.ws.send(message)
+  function updateStoryList(ids: number[]) {
+    sessions.forEach(session => {
+      let url = session.url
+      if (url && options.url) {
+        let context = sessionToContext(session, url)
+        let element = nodeToVNode(renderStoryList(ids), context)
+        let message: ServerMessage = ['update', element]
+        session.ws.send(message)
+      }
+    })
   }
 
-  function updateStory(story: StoryDTO, context: Context) {
-    if (context.type !== 'ws') return
-    if (!options.urlFilter(context.url)) return
-    let element = renderListItem(story)
-    let message: ServerMessage = ['update', nodeToVNode(element, context)]
-    context.ws.send(message)
+  function updateStory(story: StoryDTO) {
+    sessions.forEach(session => {
+      let url = session.url
+      if (url && options.url) {
+        let context = sessionToContext(session, url)
+        let element = renderListItem(story, url)
+        let message: ServerMessage = ['update', nodeToVNode(element, context)]
+        session.ws.send(message)
+      }
+    })
   }
 
   function StoryList(attrs: {}): Element {
@@ -113,7 +122,7 @@ export function genStoryList(options: {
     ]
   }
 
-  function renderListItem(story: StoryDTO) {
+  function renderListItem(story: StoryDTO, currentUrl: string) {
     return story.title ? (
       <StoryOverview story={story} />
     ) : (
@@ -124,59 +133,64 @@ export function genStoryList(options: {
         parentIds={new Set()}
         topLevel
         skipChildren
+        currentUrl={currentUrl}
       />
     )
   }
 
   function StoryOverviewById(attrs: { id: number }) {
-    let context = getContext(attrs)
-    let story = getStoryById(attrs.id, story => updateStory(story, context))
-    return renderListItem(story)
+    let story = getStoryById(attrs.id, story => updateStory(story))
+    return renderListItem(story, options.url)
   }
 
   return StoryList
 }
 
 export default {
+  HomeStories: genStoryList({
+    id: 'news',
+    apiUrl: 'https://hacker-news.firebaseio.com/v0/topstories.json',
+    url: '/',
+  }),
   TopStories: genStoryList({
     id: 'news',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/topstories.json',
-    urlFilter: (url: string) => url === '/' || url === '/news',
+    url: '/news',
   }),
   NewStories: genStoryList({
     id: 'newest',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/newstories.json',
-    urlFilter: (url: string) => url === '/newest',
+    url: '/newest',
   }),
   BestStories: genStoryList({
     id: 'front',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/beststories.json',
-    urlFilter: (url: string) => url === '/front',
+    url: '/front',
   }),
   Comments: genStoryList({
     id: 'newcomments',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/updates.json',
     apiMapFn: (data: UpdatesDTO) => data.items,
-    urlFilter: (url: string) => url === '/newcomments',
+    url: '/newcomments',
   }),
   AskStories: genStoryList({
     id: 'ask',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/askstories.json',
-    urlFilter: (url: string) => url === '/ask',
+    url: '/ask',
   }),
   ShowStories: genStoryList({
     id: 'ask',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/showstories.json',
-    urlFilter: (url: string) => url === '/show',
+    url: '/show',
   }),
   JobStories: genStoryList({
     id: 'ask',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/jobstories.json',
-    urlFilter: (url: string) => url === '/job',
+    url: '/job',
   }),
   Submitted: genStoryList({
     id: 'submitted',
     apiUrl: 'user.submitted',
-    urlFilter: (url: string) => url === '/submitted',
+    url: '/submitted',
   }),
 }

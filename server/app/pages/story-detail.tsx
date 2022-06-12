@@ -11,11 +11,17 @@ import Style from '../components/style.js'
 import { nodeToVNode } from '../jsx/vnode.js'
 import { Raw } from '../components/raw.js'
 import { Link } from '../components/router.js'
+import { sessions, sessionToContext } from '../session.js'
+import { ServerMessage } from '../../../client/index.js'
 
-function updateStoryDetail(story: StoryDTO, context: Context) {
-  if (context.type !== 'ws' || context.url !== '/0') return
-  let element = nodeToVNode(renderStoryDetail(story), context)
-  context.ws.send(['update', element])
+function updateStoryDetail(story: StoryDTO, currentUrl: string) {
+  sessions.forEach(session => {
+    if (session.url === currentUrl) {
+      let context = sessionToContext(session, currentUrl)
+      let element = nodeToVNode(renderStoryDetail(story, currentUrl), context)
+      session.ws.send(['update', element])
+    }
+  })
 }
 
 function updateStoryItem(options: {
@@ -26,12 +32,19 @@ function updateStoryItem(options: {
   parentIds: Set<number>
 }) {
   let context = options.context
-  if (context.type !== 'ws' || context.url !== '/0') return
-  let element = nodeToVNode(
-    <StoryItem item={options.story} {...options} />,
-    context,
-  )
-  context.ws.send(['update', element])
+  if (context.type === 'static') return
+  let currentUrl = context.url
+  sessions.forEach(session => {
+    if (session.url === currentUrl) {
+      let context = sessionToContext(session, currentUrl)
+      let element = nodeToVNode(
+        <StoryItem item={options.story} {...options} currentUrl={currentUrl} />,
+        context,
+      )
+      let message: ServerMessage = ['update', element]
+      session.ws.send(message)
+    }
+  })
 }
 
 function StoryDetail(props: {}): Element {
@@ -46,8 +59,9 @@ function StoryDetail(props: {}): Element {
   if (!id) {
     return <p>Error: Missing id in query</p>
   }
-  let story = getStoryById(id, story => updateStoryDetail(story, context))
-  return renderStoryDetail(story)
+  let currentUrl = context.url
+  let story = getStoryById(id, story => updateStoryDetail(story, currentUrl))
+  return renderStoryDetail(story, currentUrl)
 }
 
 let style = Style(/* css */ `
@@ -61,7 +75,7 @@ let style = Style(/* css */ `
 }
 `)
 
-function renderStoryDetail(story: StoryDTO): Element {
+function renderStoryDetail(story: StoryDTO, currentUrl: string): Element {
   return [
     `div#story-detail`,
     {},
@@ -82,6 +96,7 @@ function renderStoryDetail(story: StoryDTO): Element {
                 nextId={ids[i + 1]}
                 parentIds={new Set([story.id])}
                 rootId={story.id}
+                currentUrl={currentUrl}
               />
             </>
           ))}
@@ -93,6 +108,7 @@ function renderStoryDetail(story: StoryDTO): Element {
           nextId={undefined}
           parentIds={new Set([story.id])}
           topLevel
+          currentUrl={currentUrl}
         />
       ) : (
         <p>{JSON.stringify(story)}</p>
@@ -107,6 +123,7 @@ function StoryItemById(attrs: {
   nextId: number | undefined
   parentIds: Set<number>
   rootId?: number
+  currentUrl: string
 }): Element {
   let context = getContext(attrs)
   let item = getStoryById(attrs.id, story =>
@@ -119,9 +136,24 @@ function StoryItemById(attrs: {
   return <StoryItem item={item} {...attrs} />
 }
 
-function getRootStory(id: number): { id: number; title: string } {
+function updateRootStory(attrs: StoryItemAttrs) {
+  sessions.forEach(session => {
+    let { currentUrl } = attrs
+    if (session.url === currentUrl) {
+      let context = sessionToContext(session, currentUrl)
+      let element = nodeToVNode(<StoryItem {...attrs} />, context)
+      let message: ServerMessage = ['update', element]
+      session.ws.send(message)
+    }
+  })
+}
+
+function getRootStory(
+  id: number,
+  attrs: StoryItemAttrs,
+): { id: number; title: string } {
   for (;;) {
-    let story = getStoryById(id, () => {})
+    let story = getStoryById(id, story => updateRootStory(attrs))
     if (story.title) {
       return story
     }
@@ -133,7 +165,7 @@ function getRootStory(id: number): { id: number; title: string } {
   }
 }
 
-function StoryItem(attrs: {
+type StoryItemAttrs = {
   item: StoryDTO
   indent: number
   nextId: number | undefined
@@ -141,12 +173,14 @@ function StoryItem(attrs: {
   topLevel?: boolean
   skipChildren?: boolean
   rootId?: number
-}): Element {
+  currentUrl: string
+}
+function StoryItem(attrs: StoryItemAttrs): Element {
   let context = getContext(attrs)
   let item = attrs.item
   let time = item.time * 1000
   attrs.parentIds.add(item.id)
-  let rootStory = getRootStory(attrs.rootId || item.id)
+  let rootStory = getRootStory(attrs.rootId || item.id, attrs)
   return [
     `div#item-${item.id}`,
     {
@@ -217,6 +251,7 @@ function StoryItem(attrs: {
                 indent={attrs.indent + 1}
                 nextId={ids[i + 1]}
                 parentIds={attrs.parentIds}
+                currentUrl={attrs.currentUrl}
               />
             ))}
       </div>,
