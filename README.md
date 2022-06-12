@@ -17,11 +17,10 @@ The data is fetched from [the official API](https://github.com/HackerNews/API) i
 - Works without javascript on the client-side
 - Auto-update when new story is shared
 
-
 ## Screenshots
 
-![Screenshot of home page](./screenshot/home-page.png "Screenshot of liveview-hn home page")
-![Screenshot of discussion page](./screenshot/item-page.png "Screenshot of discussion page")
+![Screenshot of home page](./screenshot/home-page.png 'Screenshot of liveview-hn home page')
+![Screenshot of discussion page](./screenshot/item-page.png 'Screenshot of discussion page')
 
 ## License
 

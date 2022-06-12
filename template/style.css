@@ -3,7 +3,7 @@
 body {
   background: #000;
   color: #c7a775;
-  font: 21px/31px "HelveticaNeue", "Helvetica Neue", Helvetica, Arial,
+  font: 21px/31px 'HelveticaNeue', 'Helvetica Neue', Helvetica, Arial,
     sans-serif;
 }
 
@@ -14,7 +14,7 @@ h4,
 h5,
 h6 {
   color: #a6a1a1;
-  font-family: "Georgia", "Times New Roman", serif;
+  font-family: 'Georgia', 'Times New Roman', serif;
   font-weight: normal;
 }
 

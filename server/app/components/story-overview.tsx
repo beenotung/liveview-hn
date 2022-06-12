@@ -42,7 +42,7 @@ let style = Style(/* css */ `
 }
 `)
 
-function StoryOverview(attrs: { story: StoryDTO;  }) {
+function StoryOverview(attrs: { story: StoryDTO }) {
   let context = getContext(attrs)
   let story = attrs.story
   let time = story.time * 1000
@@ -50,7 +50,7 @@ function StoryOverview(attrs: { story: StoryDTO;  }) {
     `div#item-${story.id}`,
     {},
     [
-      <div class='story-overview'>
+      <div class="story-overview">
         <h2>
           {story.type !== 'story' ? (
             <span class="story-type">{story.type}</span>
