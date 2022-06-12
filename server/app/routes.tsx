@@ -80,9 +80,7 @@ let routeDict: Record<string, PageRoute> = {
     resolve: Profile.resolve,
   },
   '/submitted': {
-    title: title("User's submissions"),
-    description: 'Hacker News stories submitted by user',
-    node: <StoryList.Submitted />,
+    resolve: StoryList.Submitted.resolve,
   },
   '/newest': {
     title: title('Recent Stories'),

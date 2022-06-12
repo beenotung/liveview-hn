@@ -11,13 +11,13 @@ import { Flush } from '../components/flush.js'
 import { mapArray } from '../components/fragment.js'
 import StoryOverview from '../components/story-overview.js'
 import Style from '../components/style.js'
-import { Context, getContext } from '../context.js'
+import { Context, DynamicContext, getContext } from '../context.js'
 import JSX from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
 import StoryDetail from './story-detail.js'
 import { sessions, sessionToContext } from '../session.js'
-import { getContextSearchParams } from '../routes.js'
+import { getContextSearchParams, StaticPageRoute, title } from '../routes.js'
 
 let style = Style(/* css */ `
 .story-list ol {
@@ -147,6 +147,37 @@ export function genStoryList(options: {
   return StoryList
 }
 
+namespace Submitted {
+  let pool = new Map<string, ReturnType<typeof genStoryList>>()
+
+  export function resolve(context: DynamicContext): StaticPageRoute {
+    let params = getContextSearchParams(context)
+    let id = params.get('id')
+    if (!id) {
+      return {
+        title: title('Bad Request: Missing user id'),
+        description: 'Unknown user submission list',
+        node: <p>Error: Missing id in request query</p>,
+      }
+    }
+    let StoryList = pool.get(id)
+    if (!StoryList) {
+      let url = `/submitted?id=${id}`
+      StoryList = genStoryList({
+        id: 'submitted',
+        apiUrl: 'user.submitted',
+        url,
+      })
+      pool.set(id, StoryList)
+    }
+    return {
+      title: title(`${id}'s submissions`),
+      description: `Hacker News stories submitted by ${id}`,
+      node: <StoryList />,
+    }
+  }
+}
+
 export default {
   HomeStories: genStoryList({
     id: 'news',
@@ -189,9 +220,5 @@ export default {
     apiUrl: 'https://hacker-news.firebaseio.com/v0/jobstories.json',
     url: '/job',
   }),
-  Submitted: genStoryList({
-    id: 'submitted',
-    apiUrl: 'user.submitted',
-    url: '/submitted',
-  }),
+  Submitted,
 }
