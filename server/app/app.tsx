@@ -97,6 +97,8 @@ export function App(main: Node): Element {
         <Flush />
         <footer>
           <span class="yclinks">
+            <Link href="/user-agents">Visitors</Link>
+            {' | '}
             <Link href="/guidelines">Guidelines</Link>
             {' | '}
             <Link href="/faq">FAQ</Link>
