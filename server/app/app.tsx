@@ -64,7 +64,7 @@ function Menu(attrs: {}) {
       {' | '}
       {link('/jobs', 'jobs')}
       {' | '}
-      <a href="https://news.ycombinator.com/submit">submit</a>
+      <a href="https://news.ycombinator.com/submit" target="_blank">submit</a>
     </span>
   )
 }
