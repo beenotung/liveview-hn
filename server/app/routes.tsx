@@ -74,9 +74,7 @@ let routeDict: Record<string, PageRoute> = {
     node: <StoryList.TopStories />,
   },
   '/item': {
-    title: title('Story Detail'),
-    description: 'Story detail of Hacker News',
-    node: <StoryDetail />,
+    resolve: StoryDetail.resolve,
   },
   '/user': {
     resolve: Profile.resolve,

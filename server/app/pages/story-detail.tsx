@@ -1,7 +1,7 @@
 import { getStoryById, StoryDTO } from '../../api.js'
 import DateTimeText, { toLocaleDateTimeString } from '../components/datetime.js'
 import { mapArray } from '../components/fragment.js'
-import { Context, getContext } from '../context.js'
+import { Context, DynamicContext, getContext } from '../context.js'
 import JSX from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import StoryOverview from '../components/story-overview.js'
@@ -13,7 +13,7 @@ import { Raw } from '../components/raw.js'
 import { Link } from '../components/router.js'
 import { sessions, sessionToContext } from '../session.js'
 import { ServerMessage } from '../../../client/index.js'
-import { getContextSearchParams } from '../routes.js'
+import { getContextSearchParams, StaticPageRoute, title } from '../routes.js'
 
 function updateStoryDetail(story: StoryDTO, currentUrl: string) {
   sessions.forEach(session => {
@@ -260,4 +260,30 @@ function StoryItem(attrs: StoryItemAttrs): Element {
   ]
 }
 
-export default Object.assign(StoryDetail, { style, StoryItem })
+function resolve(context: DynamicContext): StaticPageRoute {
+  let params = getContextSearchParams(context)
+  let id = +params.get('id')!
+  if (!id) {
+    return {
+      title: title('Bad Request: Missing story id'),
+      description: 'Unknown story detail page',
+      node: <p>Error: Missing id in query</p>,
+    }
+  }
+  let currentUrl = context.url
+  let story = getStoryById(id, story => updateStoryDetail(story, currentUrl))
+  return {
+    title: title(story.title || `Story Detail of id ${id}`),
+    description: story.text
+      ? story.text
+      : story.url
+      ? story.title + ': ' + story.url
+      : `Story detail of Hacker News (id: ${id})`,
+    node: renderStoryDetail(story, currentUrl),
+  }
+}
+export default {
+  resolve,
+  style,
+  StoryItem,
+}
