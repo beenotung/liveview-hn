@@ -1,6 +1,8 @@
 # liveview-hn
 
-Hacker News Reader powered by [ts-liveview](./toolkit.md)
+Hacker News Reader
+
+Powered by [ts-liveview](https://github.com/beenotung/ts-liveview/blob/v4/README.md)
 
 Hosted on: https://hn.liveviews.cc
 
