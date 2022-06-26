@@ -1,5 +1,5 @@
 import { format_relative_time } from '@beenotung/tslib/format.js'
-import { Context, getContext, WsContext } from '../context.js'
+import type { Context } from '../context'
 import { debugLog } from '../../debug.js'
 import { TimezoneDate } from 'timezone-date.ts'
 import { Session, sessionToContext } from '../session.js'
@@ -12,17 +12,19 @@ import {
   WEEK,
   YEAR,
 } from '@beenotung/tslib/time.js'
-import { ServerMessage } from '../../../client/index.js'
+import type { ServerMessage } from '../../../client/types'
 const { abs, floor } = Math
 
 let log = debugLog('datetime.ts')
 log.enabled = true
 
-export function DateTimeText(attrs: {
-  time: number
-  relativeTimeThreshold?: number
-}) {
-  let context = getContext(attrs)
+export function DateTimeText(
+  attrs: {
+    time: number
+    relativeTimeThreshold?: number
+  },
+  context: Context,
+) {
   return formatDateTimeText(attrs, context)
 }
 
@@ -76,7 +78,7 @@ export function toLocaleDateTimeString(time: number, context: Context): string {
         timeZone,
       })
     } catch (error) {
-      let errorMessage = (error as any).toString()
+      let errorMessage = String(error)
       if (errorMessage.includes('time zone')) {
         log('invalid timezone:', timeZone)
         timeZone = undefined
@@ -140,7 +142,7 @@ export function createRelativeTimer(options: CreateRelativeTimerOptions) {
           timerSessions.delete(session)
           return
         }
-        let context = sessionToContext(session, session.url!)
+        let context = sessionToContext(session, session.url || '?')
         let text = toLocaleDateTimeString(options.time, context)
         let message: ServerMessage = [msgType, options.selector, text]
         session.ws.send(message)

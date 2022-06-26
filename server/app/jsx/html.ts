@@ -1,6 +1,5 @@
 import escapeHTML from 'escape-html'
 import type { Context } from '../context'
-import { ContextSymbol } from '../context.js'
 import debug from 'debug'
 import type {
   html,
@@ -80,11 +79,12 @@ export function writeNode(
       stream.flush()
       return
     }
-    let attrs = {
-      [ContextSymbol]: context,
-      ...node[1],
+    let attrs = node[1] || {}
+    let children = node[2]
+    if (children) {
+      Object.assign(attrs, { children })
     }
-    node = componentFn(attrs, node[2])
+    node = componentFn(attrs, context)
     return writeNode(stream, node, context)
   }
 
@@ -109,7 +109,11 @@ function writeElement(
   [selector, attrs, children]: Element,
   context: Context,
 ): void {
-  let tagName = selector.match(tagNameRegex)![1]
+  let tagNameMatch = selector.match(tagNameRegex)
+  if (!tagNameMatch) {
+    throw new TypeError('failed to parse tag name, selector: ' + selector)
+  }
+  let tagName: string = tagNameMatch[1]
   let html = `<${tagName}`
   let idMatch = selector.match(idRegex)
   if (idMatch) {
@@ -157,7 +161,7 @@ function writeElement(
   stream.write(`</${tagName}>`)
 }
 
-export function flagsToClassName(flags: Record<string, any>): string {
+export function flagsToClassName(flags: Record<string, boolean>): string {
   let classes: string[] = []
   Object.entries(flags).forEach(([name, value]) => {
     if (value) {

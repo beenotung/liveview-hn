@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import JSX from '../jsx/jsx.js'
+import { o } from '../jsx/jsx.js'
 
 export let SourceCodeStyle = /* css */ `
 pre[class*="language-"],
@@ -34,8 +34,8 @@ function SourceCode(attrs: { page: string }) {
           Source Code of <code>{attrs.page}</code>
         </b>
       </summary>
-      <link rel="stylesheet" href="/prism/prism.css" />
-      <script src="/prism/prism.js"></script>
+      <link rel="stylesheet" href="/lib/prism/prism.css" />
+      <script src="/lib/prism/prism.js"></script>
       {importPart ? (
         <>
           <details>

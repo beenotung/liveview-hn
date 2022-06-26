@@ -2,13 +2,8 @@ import { capitalize } from '@beenotung/tslib/string.js'
 import { Router } from 'url-router.ts'
 import { config } from '../config.js'
 import { Redirect } from './components/router.js'
-import type {
-  DynamicContext,
-  ExpressContext,
-  RouterContext,
-  WsContext,
-} from './context.js'
-import JSX from './jsx/jsx.js'
+import type { DynamicContext } from './context'
+import { o } from './jsx/jsx.js'
 import type { Node } from './jsx/types'
 import UserAgents from './pages/user-agents.js'
 import NotMatch from './pages/not-match.js'
@@ -166,6 +161,7 @@ Object.entries(redirectDict).forEach(([url, href]) =>
     title: title('Redirection Page'),
     description: 'Redirect to ' + url,
     node: <Redirect href={href} />,
+    status: 302,
   }),
 )
 
@@ -193,4 +189,10 @@ export function getContextSearchParams(context: DynamicContext) {
   return new URLSearchParams(
     context.routerMatch?.search || context.url.split('?').pop(),
   )
+}
+
+if (config.setup_robots_txt) {
+  setTimeout(() => {
+    console.log(Object.keys(routeDict).join('\n'))
+  }, 1000)
 }

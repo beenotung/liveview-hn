@@ -1,9 +1,9 @@
-import JSX from './jsx/jsx.js'
+import { o } from './jsx/jsx.js'
 import type { index } from '../../template/index.html'
 import { loadTemplate } from '../template.js'
 import express, { Response } from 'express'
-import { ExpressContext, getContext, WsContext } from './context.js'
-import type { Component, ComponentFn, Element, Node } from './jsx/types'
+import type { ExpressContext, WsContext } from './context'
+import type { Element, Node } from './jsx/types'
 import { nodeToHTML, writeNode } from './jsx/html.js'
 import { sendHTMLHeader } from './express.js'
 import { Link } from './components/router.js'
@@ -11,7 +11,6 @@ import { OnWsMessage } from '../ws/wss.js'
 import { dispatchUpdate } from './jsx/dispatch.js'
 import { EarlyTerminate } from './helpers.js'
 import { getWSSession } from './session.js'
-import type { ClientMessage } from '../../client/index'
 import escapeHtml from 'escape-html'
 import { Flush } from './components/flush.js'
 import { config } from '../config.js'
@@ -22,6 +21,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { matchRoute, redirectDict, StaticPageRoute } from './routes.js'
 import NotMatch from './pages/not-match.js'
+import type { ClientMountMessage, ClientRouteMessage } from '../../client/types'
 
 let template = loadTemplate<index>('index')
 
@@ -29,7 +29,7 @@ let scripts = config.development ? (
   <script src="/js/index.js" type="module" defer></script>
 ) : (
   <>
-    <MuteConsole />
+    {MuteConsole}
     <script src="/js/bundle.min.js" type="module" defer></script>
   </>
 )
@@ -143,21 +143,21 @@ appRouter.use((req, res, next) => {
 
   let route = matchRoute(context)
 
-  if (route.node === NotMatch) {
-    res.status(404)
+  if (route.status) {
+    res.status(route.status)
   }
 
-  if (route.streaming) {
-    streamHTML(res, context, route)
-  } else {
+  if (route.streaming === false) {
     responseHTML(res, context, route)
+  } else {
+    streamHTML(res, context, route)
   }
 })
 
 function responseHTML(
   res: Response,
   context: ExpressContext,
-  route: StaticPageRoute,
+  route: PageRouteMatch,
 ) {
   let app: string
   try {
@@ -187,7 +187,7 @@ function responseHTML(
 function streamHTML(
   res: Response,
   context: ExpressContext,
-  route: StaticPageRoute,
+  route: PageRouteMatch,
 ) {
   let appPlaceholder = '<!-- app -->'
   let html = template({
@@ -223,14 +223,15 @@ function streamHTML(
   res.end()
 }
 
-export let onWsMessage: OnWsMessage<ClientMessage> = (event, ws, wss) => {
+export let onWsMessage: OnWsMessage = (event, ws, _wss) => {
   console.log('ws message:', event)
   // TODO handle case where event[0] is not url
   let eventType: string | undefined
   let url: string
-  let args: any[] | undefined
+  let args: unknown[] | undefined
   let session = getWSSession(ws)
   if (event[0] === 'mount') {
+    event = event as ClientMountMessage
     eventType = 'mount'
     url = event[1]
     session.locales = event[2]
@@ -240,6 +241,7 @@ export let onWsMessage: OnWsMessage<ClientMessage> = (event, ws, wss) => {
     }
     session.timezoneOffset = event[4]
   } else if (event[0][0] === '/') {
+    event = event as ClientRouteMessage
     eventType = 'route'
     url = event[0]
     args = event.slice(1)
