@@ -7,10 +7,10 @@ if [ $# == 0 ]; then
 else
   name="$1"
 fi
-echo "import JSX from '../jsx/jsx.js'
+echo "import { o } from '../jsx/jsx.js'
 
-export function $name() {
-  return <div id='$name page'>
+function $name() {
+  return <div id='$name'>
     <h2>$name</h2>
   </div>
 }
