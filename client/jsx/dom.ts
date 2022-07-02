@@ -229,7 +229,7 @@ function applyAttrs(e: Element, attrs: attrs) {
 
 function applyProps(e: Element, props: props) {
   Object.entries(props).forEach(entry => {
-    (e as unknown as props)[entry[0]] = entry[1]
+    ;(e as unknown as props)[entry[0]] = entry[1]
   })
 }
 
