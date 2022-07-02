@@ -1,10 +1,10 @@
-import { ServerMessage } from '../../../client/index.js'
+import type { ServerMessage } from '../../../client/types'
 import { getProfile, ProfileDTO } from '../../api.js'
 import { toLocaleDateTimeString } from '../components/datetime.js'
 import { Link } from '../components/router.js'
 import Style from '../components/style.js'
-import { Context, DynamicContext, getContext } from '../context.js'
-import JSX from '../jsx/jsx.js'
+import type { Context, DynamicContext } from '../context'
+import { o } from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
 import { getContextSearchParams, StaticPageRoute, title } from '../routes.js'
@@ -32,8 +32,7 @@ function updateProfile(profile: ProfileDTO) {
   })
 }
 
-function Profile(attrs: {}) {
-  let context = getContext(attrs)
+function Profile(_attrs: {}, context: Context) {
   if (context.type === 'static') {
     throw new Error(
       "<Profile/> Component doesn't support static context, it requires routerMatch for item id",

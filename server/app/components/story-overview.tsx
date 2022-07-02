@@ -1,10 +1,10 @@
 import { YEAR } from '@beenotung/tslib/time.js'
 import { StoryDTO } from '../../api.js'
 import Style from './style.js'
-import JSX from '../jsx/jsx.js'
+import { o } from '../jsx/jsx.js'
 import DateTimeText, { toLocaleDateTimeString } from './datetime.js'
-import { getContext } from '../context.js'
 import { Link } from './router.js'
+import type { Context } from '../context'
 
 let style = Style(/* css */ `
 .story-overview h2 {
@@ -42,8 +42,7 @@ let style = Style(/* css */ `
 }
 `)
 
-function StoryOverview(attrs: { story: StoryDTO }) {
-  let context = getContext(attrs)
+function StoryOverview(attrs: { story: StoryDTO }, context: Context) {
   let story = attrs.story
   let time = story.time * 1000
   return [

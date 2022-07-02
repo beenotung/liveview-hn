@@ -2,8 +2,8 @@ import { o } from './jsx/jsx.js'
 import type { index } from '../../template/index.html'
 import { loadTemplate } from '../template.js'
 import express, { Response } from 'express'
-import type { ExpressContext, WsContext } from './context'
-import type { Element, Node } from './jsx/types'
+import type { Context, ExpressContext, WsContext } from './context'
+import type { Component, ComponentFn, Element, Node } from './jsx/types'
 import { nodeToHTML, writeNode } from './jsx/html.js'
 import { sendHTMLHeader } from './express.js'
 import { Link } from './components/router.js'
@@ -19,8 +19,7 @@ import Stats from './stats.js'
 import { MuteConsole } from './components/script.js'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { matchRoute, redirectDict, StaticPageRoute } from './routes.js'
-import NotMatch from './pages/not-match.js'
+import { matchRoute, PageRouteMatch, redirectDict } from './routes.js'
 import type { ClientMountMessage, ClientRouteMessage } from '../../client/types'
 
 let template = loadTemplate<index>('index')
@@ -36,11 +35,10 @@ let scripts = config.development ? (
 
 let style = Style(readFileSync(join('template', 'style.css')).toString())
 
-function Menu(attrs: {}) {
-  let context = getContext(attrs)
+function Menu(_attrs: {}, context: Context) {
   let url = context.type === 'static' ? '?' : context.url
-  const link = (href: string, text: string): Component => [
-    Link as ComponentFn,
+  const link = (href: string, text: string): Component<{ href: string }> => [
+    Link,
     url === href ? { href, class: 'topsel' } : { href },
     [text],
   ]

@@ -1,8 +1,8 @@
 import { getStoryById, StoryDTO } from '../../api.js'
 import DateTimeText, { toLocaleDateTimeString } from '../components/datetime.js'
 import { mapArray } from '../components/fragment.js'
-import { Context, DynamicContext, getContext } from '../context.js'
-import JSX from '../jsx/jsx.js'
+import type { Context, DynamicContext } from '../context'
+import { o } from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import StoryOverview from '../components/story-overview.js'
 import { YEAR } from '@beenotung/tslib/time.js'
@@ -12,7 +12,7 @@ import { nodeToVNode } from '../jsx/vnode.js'
 import { Raw } from '../components/raw.js'
 import { Link } from '../components/router.js'
 import { sessions, sessionToContext } from '../session.js'
-import { ServerMessage } from '../../../client/index.js'
+import type { ServerMessage } from '../../../client/types'
 import { getContextSearchParams, StaticPageRoute, title } from '../routes.js'
 
 function updateStoryDetail(story: StoryDTO, currentUrl: string) {
@@ -48,8 +48,7 @@ function updateStoryItem(options: {
   })
 }
 
-function StoryDetail(props: {}): Element {
-  let context = getContext(props)
+function StoryDetail(_attrs: {}, context: Context): Element {
   if (context.type === 'static') {
     throw new Error(
       "<StoryDetail/> Component doesn't support static context, it requires routerMatch for item id",
@@ -118,15 +117,17 @@ function renderStoryDetail(story: StoryDTO, currentUrl: string): Element {
   ]
 }
 
-function StoryItemById(attrs: {
-  id: number
-  indent: number
-  nextId: number | undefined
-  parentIds: Set<number>
-  rootId?: number
-  currentUrl: string
-}): Element {
-  let context = getContext(attrs)
+function StoryItemById(
+  attrs: {
+    id: number
+    indent: number
+    nextId: number | undefined
+    parentIds: Set<number>
+    rootId?: number
+    currentUrl: string
+  },
+  context: Context,
+): Element {
   let item = getStoryById(attrs.id, story =>
     updateStoryItem({
       story,
@@ -176,8 +177,7 @@ type StoryItemAttrs = {
   rootId?: number
   currentUrl: string
 }
-function StoryItem(attrs: StoryItemAttrs): Element {
-  let context = getContext(attrs)
+function StoryItem(attrs: StoryItemAttrs, context: Context): Element {
   let item = attrs.item
   let time = item.time * 1000
   attrs.parentIds.add(item.id)

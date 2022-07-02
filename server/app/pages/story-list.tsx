@@ -1,4 +1,4 @@
-import { ServerMessage } from '../../../client/index.js'
+import type { ServerMessage } from '../../../client/types'
 import {
   get,
   getProfile,
@@ -11,8 +11,8 @@ import { Flush } from '../components/flush.js'
 import { mapArray } from '../components/fragment.js'
 import StoryOverview from '../components/story-overview.js'
 import Style from '../components/style.js'
-import { Context, DynamicContext, getContext } from '../context.js'
-import JSX from '../jsx/jsx.js'
+import type { Context, DynamicContext } from '../context'
+import { o } from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
 import StoryDetail from './story-detail.js'
@@ -95,8 +95,7 @@ export function genStoryList(options: {
     })
   }
 
-  function StoryList(attrs: {}): Element {
-    let context = getContext(attrs)
+  function StoryList(_attrs: {}, context: Context): Element {
     let ids = getStoryList(context)
     return renderStoryList(ids)
   }
