@@ -40,6 +40,9 @@ let style = Style(/* css */ `
 .story-overview .story-comments::after {
   content: " comments"
 }
+.story-overview .story-source {
+  font-size: 0.8rem;
+}
 `)
 
 function StoryOverview(attrs: { story: StoryDTO }, context: Context) {
@@ -82,6 +85,13 @@ function StoryOverview(attrs: { story: StoryDTO }, context: Context) {
           <Link class="story-comments" href={'/item?id=' + story.id}>
             {story.descendants}
           </Link>
+          {' | '}
+          <a
+            class="story-source"
+            href={'https://news.ycombinator.com/item?id=' + story.id}
+          >
+            HN
+          </a>
         </div>
       </div>,
     ],
