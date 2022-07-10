@@ -11,6 +11,7 @@ import StoryList from './pages/story-list.js'
 import StoryDetail from './pages/story-detail.js'
 import Profile from './pages/profile.js'
 import NotImplemented from './pages/not-implemented.js'
+import { then } from '@beenotung/tslib/result.js'
 
 let titles: Record<string, string> = {}
 
@@ -37,7 +38,9 @@ export type StaticPageRoute = {
   status?: number
 }
 export type DynamicPageRoute = {
-  resolve: (context: DynamicContext) => StaticPageRoute
+  resolve: (
+    context: DynamicContext,
+  ) => StaticPageRoute | Promise<StaticPageRoute>
 }
 
 export type MenuRoute = {
@@ -165,7 +168,9 @@ Object.entries(redirectDict).forEach(([url, href]) =>
   }),
 )
 
-export function matchRoute(context: DynamicContext): PageRouteMatch {
+export function matchRoute(
+  context: DynamicContext,
+): PageRouteMatch | Promise<PageRouteMatch> {
   let match = pageRouter.route(context.url)
   let route: PageRoute = match
     ? match.value
@@ -180,7 +185,7 @@ export function matchRoute(context: DynamicContext): PageRouteMatch {
   }
   context.routerMatch = match
   if ('resolve' in route) {
-    return Object.assign(route, route.resolve(context))
+    return then(route.resolve(context), res => Object.assign(route, res))
   }
   return route
 }

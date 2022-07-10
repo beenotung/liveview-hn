@@ -1,4 +1,4 @@
-import { getStoryById, StoryDTO } from '../../api.js'
+import { getStoryById, preloadStoryById, StoryDTO } from '../../api.js'
 import DateTimeText, { toLocaleDateTimeString } from '../components/datetime.js'
 import { mapArray } from '../components/fragment.js'
 import type { Context, DynamicContext } from '../context'
@@ -14,6 +14,7 @@ import { Link } from '../components/router.js'
 import { sessions, sessionToContext } from '../session.js'
 import type { ServerMessage } from '../../../client/types'
 import { getContextSearchParams, StaticPageRoute, title } from '../routes.js'
+import { then } from '@beenotung/tslib/result.js'
 
 function updateStoryDetail(story: StoryDTO, currentUrl: string) {
   sessions.forEach(session => {
@@ -260,7 +261,9 @@ function StoryItem(attrs: StoryItemAttrs, context: Context): Element {
   ]
 }
 
-function resolve(context: DynamicContext): StaticPageRoute {
+function resolve(
+  context: DynamicContext,
+): StaticPageRoute | Promise<StaticPageRoute> {
   let params = getContextSearchParams(context)
   let id = +params.get('id')!
   if (!id) {
@@ -270,9 +273,10 @@ function resolve(context: DynamicContext): StaticPageRoute {
       node: <p>Error: Missing id in query</p>,
     }
   }
+  let preload = preloadStoryById(id)
   let currentUrl = context.url
   let story = getStoryById(id, story => updateStoryDetail(story, currentUrl))
-  return {
+  let route: StaticPageRoute = {
     title: title(story.title || `Story Detail of id ${id}`),
     description: story.text
       ? story.text
@@ -281,6 +285,7 @@ function resolve(context: DynamicContext): StaticPageRoute {
       : `Story detail of Hacker News (id: ${id})`,
     node: renderStoryDetail(story, currentUrl),
   }
+  return then(preload, () => route)
 }
 export default {
   resolve,

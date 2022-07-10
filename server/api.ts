@@ -2,6 +2,10 @@ import { SECOND } from '@beenotung/tslib/time.js'
 import { find } from 'better-sqlite3-proxy'
 import fetch from 'node-fetch'
 import { proxy } from '../db/proxy.js'
+import { then } from '@beenotung/tslib/result.js'
+
+const Timeout_Interval = 5 * SECOND
+const Expire_Interval = 30 * SECOND
 
 export function get<T>(
   url: string,
@@ -19,7 +23,7 @@ export function get<T>(
   } else {
     id = proxy.cache.push({
       url,
-      exp: now + 5 * SECOND,
+      exp: now + Timeout_Interval,
       data: JSON.stringify(defaultValue),
     })
   }
@@ -30,8 +34,11 @@ export function get<T>(
       .then(json => {
         let cache = proxy.cache[id]
         cache.data = JSON.stringify(json)
-        cache.exp = Date.now() + 30 * SECOND
+        cache.exp = Date.now() + Expire_Interval
         updateFn(json as T)
+      })
+      .catch(e => {
+        console.error('Failed to GET:', url, 'Reason:', e)
       })
   }
   return value
@@ -59,6 +66,39 @@ export type StoryDTO = {
   text: string
   parent?: number
   deleted?: boolean
+}
+
+export function preloadStoryById(id: number): void | Promise<any> {
+  let url = `https://hacker-news.firebaseio.com/v0/item/${id}.json`
+  let cache = find(proxy.cache, { url })
+  let story: StoryDTO | Promise<StoryDTO>
+  if (cache && cache.exp < Date.now() + Expire_Interval) {
+    story = JSON.parse(cache.data)
+  } else {
+    console.log('preload story by id:', id)
+    story = fetch(url)
+      .then(res => res.json())
+      .then(json => {
+        let cache = find(proxy.cache, { url })
+        let exp = Date.now() + Expire_Interval
+        let data = JSON.stringify(json)
+        if (cache) {
+          proxy.cache[cache.id!] = { url, exp, data }
+        } else {
+          proxy.cache.push({ url, exp, data })
+        }
+        return json as StoryDTO
+      })
+    story.catch(err => {
+      console.error('Failed to preload story by id:', err)
+    })
+  }
+  return then<StoryDTO, void | Promise<any>>(story, story => {
+    if (story.deleted || !story.kids) {
+      return
+    }
+    return Promise.all(story.kids.map(preloadStoryById))
+  })
 }
 
 export function getStoryById(

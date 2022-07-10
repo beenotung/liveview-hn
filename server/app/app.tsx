@@ -21,6 +21,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { matchRoute, PageRouteMatch, redirectDict } from './routes.js'
 import type { ClientMountMessage, ClientRouteMessage } from '../../client/types'
+import { then } from '@beenotung/tslib/result.js'
 
 let template = loadTemplate<index>('index')
 
@@ -139,17 +140,17 @@ appRouter.use((req, res, next) => {
     url: req.url,
   }
 
-  let route = matchRoute(context)
+  then(matchRoute(context), route => {
+    if (route.status) {
+      res.status(route.status)
+    }
 
-  if (route.status) {
-    res.status(route.status)
-  }
-
-  if (route.streaming === false) {
-    responseHTML(res, context, route)
-  } else {
-    streamHTML(res, context, route)
-  }
+    if (route.streaming === false) {
+      responseHTML(res, context, route)
+    } else {
+      streamHTML(res, context, route)
+    }
+  })
 })
 
 function responseHTML(
@@ -179,6 +180,7 @@ function responseHTML(
     app,
   })
 
+  // deepcode ignore XSS: the dynamic content is html-escaped
   res.end(html)
 }
 
@@ -256,7 +258,8 @@ export let onWsMessage: OnWsMessage = (event, ws, _wss) => {
     event: eventType,
     session,
   }
-  let route = matchRoute(context)
-  let node = App(route.node)
-  dispatchUpdate(context, node, route.title)
+  then(matchRoute(context), route => {
+    let node = App(route.node)
+    dispatchUpdate(context, node, route.title)
+  })
 }
