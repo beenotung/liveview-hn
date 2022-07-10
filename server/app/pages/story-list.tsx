@@ -160,7 +160,7 @@ export function genStoryList(options: {
   ): StaticPageRoute | Promise<StaticPageRoute> {
     let preload = options.preload
       ? options.preload()
-      : preloadStoryList(options.apiUrl)
+      : preloadStoryList(options.apiUrl, options.apiMapFn)
     let route: StaticPageRoute = {
       title: options.title,
       description: options.description,

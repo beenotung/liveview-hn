@@ -187,12 +187,18 @@ export function preloadSubmitted(id: string) {
   )
 }
 
-export function preloadStoryList(url: string) {
+export function preloadStoryList(
+  url: string,
+  apiMapFn?: (data: any) => number[],
+) {
   then(
     preload<number[]>(url, err => {
       console.error('Failed to preload story list, url:', url, err)
     }),
     (ids): void | Promise<unknown> =>
-      ids && Promise.all(ids.map(id => preloadStoryById(id))),
+      ids &&
+      Promise.all(
+        (apiMapFn ? apiMapFn(ids) : ids).map(id => preloadStoryById(id)),
+      ),
   )
 }
