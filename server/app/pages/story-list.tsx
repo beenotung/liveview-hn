@@ -4,6 +4,8 @@ import {
   getProfile,
   getStoryById,
   getWithMapFn,
+  preloadStoryList,
+  preloadSubmitted,
   StoryDTO,
   UpdatesDTO,
 } from '../../api.js'
@@ -17,7 +19,14 @@ import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
 import StoryDetail from './story-detail.js'
 import { sessions, sessionToContext } from '../session.js'
-import { getContextSearchParams, StaticPageRoute, title } from '../routes.js'
+import { then } from '@beenotung/tslib/result.js'
+import {
+  DynamicPageRoute,
+  getContextSearchParams,
+  StaticPageRoute,
+  title,
+} from '../routes.js'
+import { config } from '../../config.js'
 
 let style = Style(/* css */ `
 .story-list ol {
@@ -35,7 +44,10 @@ export function genStoryList(options: {
   defaultValue?: any
   apiMapFn?: (data: any) => number[]
   url: string
-}) {
+  title: string
+  description: string
+  preload?: () => unknown | Promise<unknown>
+}): DynamicPageRoute {
   function getSubmitted(context: Context): number[] {
     if (context.type === 'static') {
       throw new Error(
@@ -143,15 +155,32 @@ export function genStoryList(options: {
     return renderListItem(story, options.url)
   }
 
-  return StoryList
+  function resolve(
+    context: Context,
+  ): StaticPageRoute | Promise<StaticPageRoute> {
+    let preload = options.preload
+      ? options.preload()
+      : preloadStoryList(options.apiUrl)
+    let route: StaticPageRoute = {
+      title: options.title,
+      description: options.description,
+      node: <StoryList />,
+    }
+    return then(preload, () => route)
+  }
+
+  // deepcode ignore JavascriptDeadCode: This is not dead code
+  return { resolve }
 }
 
 namespace Submitted {
   let pool = new Map<string, ReturnType<typeof genStoryList>>()
 
-  export function resolve(context: DynamicContext): StaticPageRoute {
+  export function resolve(
+    context: DynamicContext,
+  ): StaticPageRoute | Promise<StaticPageRoute> {
     let params = getContextSearchParams(context)
-    let id = params.get('id')
+    const id = params.get('id')
     if (!id) {
       return {
         title: title('Bad Request: Missing user id'),
@@ -166,14 +195,13 @@ namespace Submitted {
         id: 'submitted',
         apiUrl: 'user.submitted',
         url,
+        title: title(`${id}'s submissions`),
+        description: `Hacker News stories submitted by ${id}`,
+        preload: () => preloadSubmitted(id),
       })
       pool.set(id, StoryList)
     }
-    return {
-      title: title(`${id}'s submissions`),
-      description: `Hacker News stories submitted by ${id}`,
-      node: <StoryList />,
-    }
+    return StoryList.resolve(context)
   }
 }
 
@@ -182,42 +210,60 @@ export default {
     id: 'news',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/topstories.json',
     url: '/',
+    title: config.site_name,
+    description: config.site_description,
   }),
   TopStories: genStoryList({
     id: 'news',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/topstories.json',
     url: '/news',
+    title: title('Top Stories'),
+    description: 'Trending stories on Hacker News',
   }),
   NewStories: genStoryList({
     id: 'newest',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/newstories.json',
     url: '/newest',
+    title: title('Recent Stories'),
+    description: 'Recent stories on Hacker News',
   }),
   BestStories: genStoryList({
     id: 'front',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/beststories.json',
     url: '/front',
+    title: title('Front Page Stories'),
+    description: 'Hacker News stories that were listed in the front page',
   }),
   Comments: genStoryList({
     id: 'newcomments',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/updates.json',
     apiMapFn: (data: UpdatesDTO) => data.items,
     url: '/newcomments',
+    title: title('New Comments'),
+    description: 'Latest Comments on recent Hacker News stories',
   }),
   AskStories: genStoryList({
     id: 'ask',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/askstories.json',
     url: '/ask',
+    title: title('Ask HN'),
+    description:
+      'User submitted questions asking for discussion among Hacker News community',
   }),
   ShowStories: genStoryList({
     id: 'ask',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/showstories.json',
     url: '/show',
+    title: title('Show HN Stories'),
+    description:
+      "Show HN is for something you've made that other people can play with. HN users can try it out, give you feedback, and ask questions in the thread.",
   }),
   JobStories: genStoryList({
     id: 'ask',
     apiUrl: 'https://hacker-news.firebaseio.com/v0/jobstories.json',
     url: '/job',
+    title: title('Jobs'),
+    description: 'Jobs at YCombinator startups',
   }),
   Submitted,
 }

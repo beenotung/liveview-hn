@@ -68,39 +68,6 @@ export type StoryDTO = {
   deleted?: boolean
 }
 
-export function preloadStoryById(id: number): void | Promise<any> {
-  let url = `https://hacker-news.firebaseio.com/v0/item/${id}.json`
-  let cache = find(proxy.cache, { url })
-  let story: StoryDTO | Promise<StoryDTO>
-  if (cache && cache.exp < Date.now() + Expire_Interval) {
-    story = JSON.parse(cache.data)
-  } else {
-    console.log('preload story by id:', id)
-    story = fetch(url)
-      .then(res => res.json())
-      .then(json => {
-        let cache = find(proxy.cache, { url })
-        let exp = Date.now() + Expire_Interval
-        let data = JSON.stringify(json)
-        if (cache) {
-          proxy.cache[cache.id!] = { url, exp, data }
-        } else {
-          proxy.cache.push({ url, exp, data })
-        }
-        return json as StoryDTO
-      })
-    story.catch(err => {
-      console.error('Failed to preload story by id:', err)
-    })
-  }
-  return then<StoryDTO, void | Promise<any>>(story, story => {
-    if (story.deleted || !story.kids) {
-      return
-    }
-    return Promise.all(story.kids.map(preloadStoryById))
-  })
-}
-
 export function getStoryById(
   id: number,
   updateFn: (data: StoryDTO) => void,
@@ -156,4 +123,76 @@ export function getProfile(
 
 export type UpdatesDTO = {
   items: number[]
+}
+
+export function preload<T>(
+  url: string,
+  onError: (err: any) => void,
+): T | Promise<T | void> {
+  let cache = find(proxy.cache, { url })
+  if (cache && cache.exp < Date.now() + Expire_Interval) {
+    return JSON.parse(cache.data)
+  }
+  return fetch(url)
+    .then(res => res.json())
+    .then(json => {
+      const cache = find(proxy.cache, { url })
+      const exp = Date.now() + Expire_Interval
+      const data = JSON.stringify(json)
+      if (cache) {
+        proxy.cache[cache.id!] = { url, exp, data }
+      } else {
+        proxy.cache.push({ url, exp, data })
+      }
+      return json as T
+    })
+    .catch(onError)
+}
+
+export function preloadStoryById(
+  id: number,
+  mode?: 'recursive',
+): void | Promise<unknown> {
+  let url = `https://hacker-news.firebaseio.com/v0/item/${id}.json`
+  return then<StoryDTO | void, void | Promise<unknown>>(
+    preload(url, err => {
+      console.error('Failed to preload story by id:', id, err)
+    }),
+    (story): void | Promise<unknown> =>
+      (mode === 'recursive' &&
+        story &&
+        !story.deleted &&
+        story.kids &&
+        Promise.all(story.kids.map(id => preloadStoryById(id, mode)))) ||
+      void 0,
+  )
+}
+
+export function preloadProfile(id: string) {
+  let url = `https://hacker-news.firebaseio.com/v0/user/${id}.json`
+  return preload<ProfileDTO>(url, err => {
+    console.error('Failed to preload profile by id:', id, err)
+  })
+}
+
+export function preloadSubmitted(id: string) {
+  return then(
+    preloadProfile(id),
+    (profile): void | Promise<unknown> =>
+      profile &&
+      profile.submitted &&
+      Promise.all(
+        profile.submitted.slice(0, 30).map(id => preloadStoryById(id)),
+      ),
+  )
+}
+
+export function preloadStoryList(url: string) {
+  then(
+    preload<number[]>(url, err => {
+      console.error('Failed to preload story list, url:', url, err)
+    }),
+    (ids): void | Promise<unknown> =>
+      ids && Promise.all(ids.map(id => preloadStoryById(id))),
+  )
 }

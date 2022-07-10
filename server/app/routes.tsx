@@ -61,57 +61,17 @@ export function title(page: string) {
 
 // TODO direct support alternative urls instead of having to repeat the entry
 let routeDict: Record<string, PageRoute> = {
-  '/': {
-    title: config.site_name,
-    description: config.site_description,
-    node: <StoryList.TopStories />,
-  },
-  '/news': {
-    title: title('Top Stories'),
-    description: 'Trending stories on Hacker News',
-    node: <StoryList.TopStories />,
-  },
-  '/item': {
-    resolve: StoryDetail.resolve,
-  },
-  '/user': {
-    resolve: Profile.resolve,
-  },
-  '/submitted': {
-    resolve: StoryList.Submitted.resolve,
-  },
-  '/newest': {
-    title: title('Recent Stories'),
-    description: 'Recent stories on Hacker News',
-    node: <StoryList.NewStories />,
-  },
-  '/front': {
-    title: title('Front Page Stories'),
-    description: 'Hacker News stories that were listed in the front page',
-    node: <StoryList.BestStories />,
-  },
-  '/newcomments': {
-    title: title('New Comments'),
-    description: 'Latest Comments on recent Hacker News stories',
-    node: <StoryList.Comments />,
-  },
-  '/ask': {
-    title: title('Ask HN'),
-    description:
-      'User submitted questions asking for discussion among Hacker News community',
-    node: <StoryList.AskStories />,
-  },
-  '/show': {
-    title: title('Show HN Stories'),
-    description:
-      "Show HN is for something you've made that other people can play with. HN users can try it out, give you feedback, and ask questions in the thread.",
-    node: <StoryList.ShowStories />,
-  },
-  '/jobs': {
-    title: title('Jobs'),
-    description: 'Jobs at YCombinator startups',
-    node: <StoryList.JobStories />,
-  },
+  '/': StoryList.HomeStories,
+  '/news': StoryList.TopStories,
+  '/item': StoryDetail,
+  '/user': Profile,
+  '/submitted': StoryList.Submitted,
+  '/newest': StoryList.NewStories,
+  '/front': StoryList.BestStories,
+  '/newcomments': StoryList.Comments,
+  '/ask': StoryList.AskStories,
+  '/show': StoryList.ShowStories,
+  '/jobs': StoryList.JobStories,
   '/guidelines': {
     title: title('Guidelines'),
     description: `Anything that good hackers would find interesting. That includes more than hacking and startups. In a sentence: anything that gratifies one's intellectual curiosity.`,
