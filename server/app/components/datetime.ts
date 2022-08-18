@@ -1,7 +1,6 @@
 import { format_relative_time } from '@beenotung/tslib/format.js'
 import type { Context } from '../context'
 import { debugLog } from '../../debug.js'
-import { TimezoneDate } from 'timezone-date.ts'
 import { Session, sessionToContext } from '../session.js'
 import {
   DAY,
@@ -44,10 +43,27 @@ export function formatDateTimeText(
   return toLocaleDateTimeString(attrs.time, context)
 }
 
-export function toLocaleDateTimeString(time: number, context: Context): string {
+export type LocaleDateTimeFormatOptions = Omit<
+  Intl.DateTimeFormatOptions,
+  'timeZone'
+>
+export const DefaultLocaleDateTimeFormatOptions: LocaleDateTimeFormatOptions = {
+  weekday: 'short',
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  hour12: true,
+  minute: '2-digit',
+}
+
+export function toLocaleDateTimeString(
+  time: number,
+  context: Context,
+  options: LocaleDateTimeFormatOptions = DefaultLocaleDateTimeFormatOptions,
+): string {
   let locales: string | undefined
   let timeZone: string | undefined
-  let timezoneOffset: number | undefined
   if (context.type === 'express') {
     locales = context.req.headers['accept-language']
       ?.split(',')[0]
@@ -56,25 +72,15 @@ export function toLocaleDateTimeString(time: number, context: Context): string {
     let session = context.session
     locales = session.locales
     timeZone = session.timeZone
-    timezoneOffset = session.timezoneOffset
   }
   if (locales === '*') {
     locales = undefined
   }
   for (;;) {
     try {
-      let date = new TimezoneDate(time)
-      if (timezoneOffset !== undefined) {
-        date.setTimezoneOffset(timezoneOffset)
-      }
+      let date = new Date(time)
       return date.toLocaleString(locales, {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        hour12: true,
-        minute: '2-digit',
+        ...options,
         timeZone,
       })
     } catch (error) {
