@@ -205,20 +205,15 @@ export function preloadStoryList(
 }
 
 function clearExpiredCache() {
-  let n =
-    db.queryFirstCell(
-      'select count(id) from cache where exp < ?',
-      Date.now(),
-    ) || 0
+  console.log('[clearExpiredCache] start')
   let batch = 200
   let del = db.prepare(
     'delete from cache where id in (select id from cache where exp < ? limit ?)',
   )
   function loop() {
-    console.log('remind:', n.toLocaleString())
-    del.run(Date.now(), batch)
-    n -= batch
-    if (n > 0) {
+    console.log('[clearExpiredCache] loop')
+    let result = del.run(Date.now(), batch)
+    if (result.changes == batch) {
       setTimeout(loop, SECOND * 5)
     } else {
       setTimeout(clearExpiredCache, MINUTE * 20)
