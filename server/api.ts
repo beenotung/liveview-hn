@@ -203,15 +203,19 @@ export function preloadStoryList(
   )
 }
 
+let delete_expired_cache = db.prepare(/* sql */ `
+delete from cache
+where id in (
+  select id from cache where exp < ? limit ?
+)
+`)
+
 function clearExpiredCache() {
   console.log('[clearExpiredCache] start')
   let batch = 200
-  let del = db.prepare(
-    'delete from cache where id in (select id from cache where exp < ? limit ?)',
-  )
   function loop() {
     console.log('[clearExpiredCache] loop')
-    let result = del.run(Date.now(), batch)
+    let result = delete_expired_cache.run(Date.now(), batch)
     if (result.changes == batch) {
       setTimeout(loop, SECOND * 5)
     } else {
