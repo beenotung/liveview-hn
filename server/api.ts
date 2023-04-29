@@ -7,6 +7,16 @@ import { db } from '../db/db.js'
 const Timeout_Interval = 5 * SECOND
 const Expire_Interval = 30 * SECOND
 
+let fetchQueue = Promise.resolve<any>(0)
+
+function safeFetch(url: string) {
+  fetchQueue = fetchQueue
+    .catch(err => err)
+    .then(() => fetch(url))
+    .then(res => res.json())
+  return fetchQueue
+}
+
 export function get<T>(
   url: string,
   defaultValue: T,
@@ -29,8 +39,7 @@ export function get<T>(
   }
 
   if (!cache || cache.exp < now) {
-    fetch(url)
-      .then(res => res.json())
+    safeFetch(url)
       .then(json => {
         let cache = proxy.cache[id]
         cache.data = JSON.stringify(json)
@@ -133,8 +142,7 @@ export function preload<T>(
   if (cache && cache.exp < Date.now() + Expire_Interval) {
     return JSON.parse(cache.data)
   }
-  return fetch(url)
-    .then(res => res.json())
+  return safeFetch(url)
     .then(json => {
       const cache = find(proxy.cache, { url })
       const exp = Date.now() + Expire_Interval
