@@ -1,5 +1,5 @@
 import express from 'express'
-import spdy from 'spdy'
+import spdy from 'spdy-fixes'
 import { WebSocketServer } from 'ws'
 import { config } from './config.js'
 import { join } from 'path'
@@ -8,7 +8,6 @@ import { debugLog } from './debug.js'
 import { listenWSSConnection } from './ws/wss-lite.js'
 import { appRouter, onWsMessage } from './app/app.js'
 import { startSession, closeSession } from './app/session.js'
-import { existsSync, unlinkSync } from 'fs'
 import open from 'open'
 import { cookieMiddleware } from './app/cookie.js'
 import { listenWSSCookie } from './app/cookie.js'
@@ -29,7 +28,7 @@ listenWSSConnection({
     startSession(ws)
   },
   onClose: (ws, code, reason) => {
-    log('close ws:', ws.ws.protocol, code, reason)
+    log('close ws:', ws.ws.protocol, code, String(reason))
     closeSession(ws)
   },
   onMessage: onWsMessage,
@@ -65,8 +64,7 @@ const port = config.port
 const protocol = config.serverOptions.key ? 'https' : 'http'
 server.listen(port, () => {
   print({ port, protocol })
-  if (config.development && existsSync('.open')) {
+  if (config.auto_open) {
     open(`${protocol}://localhost:${port}`)
-    unlinkSync('.open')
   }
 })

@@ -24,9 +24,8 @@ import {
   DynamicPageRoute,
   getContextSearchParams,
   StaticPageRoute,
-  title,
 } from '../routes.js'
-import { config } from '../../config.js'
+import { config, title } from '../../config.js'
 
 let style = Style(/* css */ `
 .story-list ol {

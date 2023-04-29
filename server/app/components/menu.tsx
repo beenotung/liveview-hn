@@ -6,12 +6,19 @@ import { Link } from './router.js'
 import { Style } from './style.js'
 import { Context, getContextUrl } from '../context.js'
 import { capitalize } from '@beenotung/tslib/string.js'
+import { getContextCookie } from '../cookie.js'
 
-export type MenuRoutes = Array<[url: string, text: string, alias?: string]>
+export type MenuRoute = {
+  url: string
+  menuText: string
+  menuUrl?: string // optional, default to be same as PageRoute.url
+  guestOnly?: boolean
+  userOnly?: boolean
+}
 
 export function Menu(
   attrs: {
-    routes: MenuRoutes
+    routes: MenuRoute[]
     matchPrefix?: boolean
     separator?: Node
     attrs?: attrs
@@ -19,6 +26,7 @@ export function Menu(
   context: Context,
 ) {
   const currentUrl = getContextUrl(context)
+  const role = getContextCookie(context)?.token ? 'user' : 'guest'
   return (
     <>
       {Style(/* css */ `
@@ -33,19 +41,27 @@ export function Menu(
 `)}
       <div class="menu" {...attrs.attrs}>
         {mapArray(
-          attrs.routes,
-          ([href, text, alias]) => (
+          attrs.routes.filter(
+            route =>
+              !(
+                (route.guestOnly && role !== 'guest') ||
+                (route.userOnly && role !== 'user')
+              ),
+          ),
+          route => (
             <Link
-              href={href}
+              href={route.menuUrl || route.url}
               class={flagsToClassName({
                 selected:
-                  currentUrl === alias ||
-                  (attrs.matchPrefix
-                    ? currentUrl.startsWith(href)
-                    : currentUrl === href),
+                  currentUrl === route.url ||
+                  (route.menuUrl
+                    ? attrs.matchPrefix
+                      ? currentUrl.startsWith(route.menuUrl)
+                      : currentUrl === route.menuUrl
+                    : false),
               })}
             >
-              {text}
+              {route.menuText}
             </Link>
           ),
           attrs.separator,

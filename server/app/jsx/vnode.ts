@@ -14,6 +14,8 @@ import type {
 } from './types'
 import { nodeListToHTML } from './html.js'
 import { Flush } from '../components/flush.js'
+import { renderError } from '../components/error.js'
+import { EarlyTerminate, Message } from '../helpers.js'
 
 export function nodeToVElementOptimized(
   node: Element | Component,
@@ -45,9 +47,13 @@ export function nodeToVElementOptimized(
     return nodeToVNode(node, context)
   }
   const vElement: VElement = nodeToVNode(node, context)
-  const childrenHTML: html = nodeListToHTML(children, context)
-  const childrenRaw: Raw = ['raw', childrenHTML]
-  const vElementWithRaw: VElement = [vElement[0], vElement[1], [childrenRaw]]
+  let vChildren: VNodeList | undefined = undefined
+  if (vElement[2]) {
+    const childrenHTML: html = nodeListToHTML(vElement[2], context)
+    const childrenRaw: Raw = ['raw', childrenHTML]
+    vChildren = [childrenRaw]
+  }
+  const vElementWithRaw: VElement = [vElement[0], vElement[1], vChildren]
   const vElementSize = JSON.stringify(vElement).length
   const vElementWithRawSize = JSON.stringify(vElementWithRaw).length
   if (vElementSize > vElementWithRawSize) {
@@ -101,8 +107,14 @@ function componentToVNode(component: Component, context: Context): VNode {
   if (children) {
     Object.assign(attrs, { children })
   }
-  let node = componentFn(attrs, context)
-  return nodeToVNode(node, context)
+  try {
+    let node = componentFn(attrs, context)
+    return nodeToVNode(node, context)
+  } catch (error) {
+    if (error === EarlyTerminate || error instanceof Message) throw error
+    console.error('Caught error from componentFn:', error)
+    return renderError(error, context)
+  }
 }
 
 function elementToVElement(element: Element, context: Context): VElement {

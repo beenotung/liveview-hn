@@ -1,7 +1,7 @@
 import { config as loadEnv } from 'dotenv'
 import { readFileSync } from 'fs'
 import { populateEnv } from 'populate-env'
-import { ServerOptions } from 'spdy'
+import { ServerOptions } from 'spdy-fixes'
 
 loadEnv()
 
@@ -15,6 +15,7 @@ let env = {
   HTTPS_KEY_FILE: 'localhost-key.pem',
   HTTPS_CERT_FILE: 'localhost.pem',
   HTTP_VERSION: 2, // 1 or 2
+  EPOCH: 1, // to distinct initial run or restart in serve mode
 }
 
 populateEnv(env, { mode: 'halt' })
@@ -33,26 +34,42 @@ let serverOptions: ServerOptions =
         cert: readFileSync(env.HTTPS_CERT_FILE),
       }
 
-export let config = {
-  production: env.NODE_ENV === 'production' || process.argv[2] === '--prod',
-  development: env.NODE_ENV === 'development' || process.argv[2] === '--dev',
-  port: env.PORT,
-  require_https: true,
-  behind_proxy,
-  cookie_secret: env.COOKIE_SECRET,
-  site_name: 'Liveview Hacker News',
-  site_description: 'Hacker News Reader - Demo site powered by ts-liveview',
-  setup_robots_txt: false,
-  serverOptions,
-}
+let production = env.NODE_ENV === 'production' || process.argv[2] === '--prod'
+let development = env.NODE_ENV === 'development' || process.argv[2] === '--dev'
 
-if (config.behind_proxy) {
-  config.require_https = false
-} else {
-  config.require_https = config.production
-}
-
-if (config.production && env.COOKIE_SECRET == ' ') {
+if (production && env.COOKIE_SECRET == ' ') {
   console.error('Missing COOKIE_SECRET in env')
   process.exit(1)
 }
+
+function fixEpoch() {
+  // workaround of initial build twice since esbuild v0.17
+  if (env.EPOCH >= 2) {
+    return env.EPOCH - 1
+  }
+  return env.EPOCH
+}
+
+let epoch = fixEpoch()
+
+export let config = {
+  production,
+  development,
+  port: env.PORT,
+  require_https: !behind_proxy && production,
+  behind_proxy,
+  cookie_secret: env.COOKIE_SECRET,
+  site_name: 'Liveview Hacker News',
+  short_site_name: 'Liveview HN',
+  site_description: 'Hacker News Reader - Demo site powered by ts-liveview',
+  setup_robots_txt: false,
+  serverOptions,
+  epoch,
+  auto_open: !production && development && epoch === 1,
+}
+
+export function title(page: string) {
+  return page + ' | ' + config.site_name
+}
+
+export let apiEndpointTitle = title('API Endpoint')

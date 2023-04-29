@@ -1,5 +1,6 @@
 import type { ServerMessage } from '../../../client/types'
 import { getProfile, ProfileDTO } from '../../api.js'
+import { title } from '../../config.js'
 import { toLocaleDateTimeString } from '../components/datetime.js'
 import { Link } from '../components/router.js'
 import Style from '../components/style.js'
@@ -7,7 +8,7 @@ import type { Context, DynamicContext } from '../context'
 import { o } from '../jsx/jsx.js'
 import { Element } from '../jsx/types.js'
 import { nodeToVNode } from '../jsx/vnode.js'
-import { getContextSearchParams, StaticPageRoute, title } from '../routes.js'
+import { getContextSearchParams, StaticPageRoute } from '../routes.js'
 import { sessions, sessionToContext } from '../session.js'
 
 let style = Style(/* css */ `

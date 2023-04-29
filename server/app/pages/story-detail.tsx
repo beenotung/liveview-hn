@@ -13,8 +13,9 @@ import { Raw } from '../components/raw.js'
 import { Link } from '../components/router.js'
 import { sessions, sessionToContext } from '../session.js'
 import type { ServerMessage } from '../../../client/types'
-import { getContextSearchParams, StaticPageRoute, title } from '../routes.js'
+import { getContextSearchParams, StaticPageRoute } from '../routes.js'
 import { then } from '@beenotung/tslib/result.js'
+import { title } from '../../config.js'
 
 function updateStoryDetail(story: StoryDTO, currentUrl: string) {
   sessions.forEach(session => {

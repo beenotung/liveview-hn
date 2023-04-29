@@ -91,6 +91,11 @@ export function toLocaleDateTimeString(
         continue
       }
       if (errorMessage.includes('locale')) {
+        if (locales && locales.includes(';')) {
+          // e.g. "en;q=0.9"
+          locales = locales.split(';')[0]
+          continue
+        }
         log('invalid locale:', locales)
         locales = undefined
         continue
@@ -171,6 +176,10 @@ export function createRelativeTimer(options: CreateRelativeTimerOptions) {
   }
   return { startRelativeTimer }
 }
+
+export type StartRelativeTimer = ReturnType<
+  typeof createRelativeTimer
+>['startRelativeTimer']
 
 const formatRelativeTimePairs: Array<[interval: number, unit: string]> = [
   [SECOND, 'second'],

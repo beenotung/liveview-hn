@@ -1,6 +1,5 @@
 import { MINUTE, SECOND } from '@beenotung/tslib/time.js'
 import { find } from 'better-sqlite3-proxy'
-import fetch from 'node-fetch'
 import { proxy } from '../db/proxy.js'
 import { then } from '@beenotung/tslib/result.js'
 import { db } from '../db/db.js'

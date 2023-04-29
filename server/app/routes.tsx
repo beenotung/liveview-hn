@@ -1,6 +1,6 @@
 import { capitalize } from '@beenotung/tslib/string.js'
 import { Router } from 'url-router.ts'
-import { config } from '../config.js'
+import { config, title } from '../config.js'
 import { Redirect } from './components/router.js'
 import type { DynamicContext } from './context'
 import { o } from './jsx/jsx.js'
@@ -12,6 +12,7 @@ import StoryDetail from './pages/story-detail.js'
 import Profile from './pages/profile.js'
 import NotImplemented from './pages/not-implemented.js'
 import { then } from '@beenotung/tslib/result.js'
+import type { MenuRoute } from './components/menu'
 
 let titles: Record<string, string> = {}
 
@@ -38,22 +39,13 @@ export type StaticPageRoute = {
   status?: number
 }
 export type DynamicPageRoute = {
-  resolve: (
-    context: DynamicContext,
-  ) => StaticPageRoute | Promise<StaticPageRoute>
+  resolve: (context: DynamicContext) => ResolvedPageRoue
 }
-
-export type MenuRoute = {
-  url: string
-  menuText: string
-  menuUrl: string // optional, default to be same as PageRoute.url
-}
+export type ResolvedPageRoue = StaticPageRoute | Promise<StaticPageRoute>
 
 export type PageRouteMatch = PageRouteOptions & StaticPageRoute
 
-export function title(page: string) {
-  return page + ' | ' + config.site_name
-}
+export type Routes = Record<string, PageRoute>
 
 // jsx node can be used directly, e.g. `Home`
 // invoke functional component with square bracket, e.g. `[Editor]`
@@ -92,7 +84,7 @@ let routeDict: Record<string, PageRoute> = {
     status: 501,
   },
   '/user-agents': {
-    title: 'User Agents of Visitors',
+    title: title('User Agents of Visitors'),
     description: "User agents of this site's visitors",
     menuText: 'User Agents',
     node: UserAgents,
@@ -111,6 +103,7 @@ Object.entries(routeDict).forEach(([url, route]) => {
   pageRouter.add(url, { url, ...route })
   if (route.menuText) {
     menuRoutes.push({
+      ...route,
       url,
       menuText: route.menuText,
       menuUrl: route.menuUrl || url,
@@ -128,18 +121,18 @@ Object.entries(redirectDict).forEach(([url, href]) =>
   }),
 )
 
+export let NotFoundPage: PageRoute = {
+  title: title('Page Not Found'),
+  description: 'This page is not found. Probably due to outdated menu.',
+  node: NotMatch,
+  status: 404,
+}
+
 export function matchRoute(
   context: DynamicContext,
 ): PageRouteMatch | Promise<PageRouteMatch> {
   let match = pageRouter.route(context.url)
-  let route: PageRoute = match
-    ? match.value
-    : {
-        title: title('Page Not Found'),
-        description: 'This page is not found. Probably due to outdated menu.',
-        node: NotMatch,
-        status: 404,
-      }
+  let route: PageRoute = match ? match.value : NotFoundPage
   if (route.streaming === undefined) {
     route.streaming = StreamingByDefault
   }

@@ -13,6 +13,8 @@ import type {
 } from './types'
 import { HTMLStream, noop } from './stream.js'
 import { Flush } from '../components/flush.js'
+import { renderError } from '../components/error.js'
+import { EarlyTerminate, Message } from '../helpers.js'
 
 const log = debug('html.ts')
 log.enabled = true
@@ -84,8 +86,15 @@ export function writeNode(
     if (children) {
       Object.assign(attrs, { children })
     }
-    node = componentFn(attrs, context)
-    return writeNode(stream, node, context)
+    try {
+      node = componentFn(attrs, context)
+      writeNode(stream, node, context)
+    } catch (error) {
+      if (error === EarlyTerminate || error instanceof Message) throw error
+      console.error('Caught error from componentFn:', error)
+      writeNode(stream, renderError(error, context), context)
+    }
+    return
   }
 
   return writeElement(stream, node, context)
@@ -133,6 +142,7 @@ function writeElement(
   }
   if (attrs) {
     Object.entries(attrs).forEach(([name, value]) => {
+      if (value === undefined || value === null) return
       switch (name) {
         case 'class':
         case 'className':
