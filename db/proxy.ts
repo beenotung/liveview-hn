@@ -5,7 +5,7 @@ export type Cache = {
   id?: null | number
   url: string
   exp: number
-  data: string
+  data: null | string
 }
 
 export type Method = {

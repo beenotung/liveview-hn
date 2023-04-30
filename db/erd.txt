@@ -20,7 +20,7 @@ cache
 id pk
 url text unique
 exp integer
-data text
+data text null
 
 
 request_log
