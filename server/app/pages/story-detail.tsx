@@ -1,9 +1,9 @@
-import { getStoryById, preloadStoryById, StoryDTO } from '../../api.js'
+import { getStoryById, StoryDTO } from '../../hn-api.js'
 import DateTimeText, { toLocaleDateTimeString } from '../components/datetime.js'
 import { mapArray } from '../components/fragment.js'
 import type { Context, DynamicContext } from '../context'
 import { o } from '../jsx/jsx.js'
-import { Element } from '../jsx/types.js'
+import { Element, NodeList } from '../jsx/types.js'
 import StoryOverview from '../components/story-overview.js'
 import { YEAR } from '@beenotung/tslib/time.js'
 import { Flush } from '../components/flush.js'
@@ -50,22 +50,6 @@ function updateStoryItem(options: {
   })
 }
 
-function StoryDetail(_attrs: {}, context: Context): Element {
-  if (context.type === 'static') {
-    throw new Error(
-      "<StoryDetail/> Component doesn't support static context, it requires routerMatch for item id",
-    )
-  }
-  let params = getContextSearchParams(context)
-  let id = +params.get('id')!
-  if (!id) {
-    return <p>Error: Missing id in query</p>
-  }
-  let currentUrl = context.url
-  let story = getStoryById(id, story => updateStoryDetail(story, currentUrl))
-  return renderStoryDetail(story, currentUrl)
-}
-
 let style = Style(/* css */ `
 .story-item {
   font-size: 1rem;
@@ -77,6 +61,39 @@ let style = Style(/* css */ `
 }
 `)
 
+function renderStoryDetailError(id: number): Element {
+  return [
+    `div#story-detail`,
+    {},
+    [
+      <>
+        <p>
+          Failed to load story detail at the moment, please try again later.
+        </p>
+        <div aria-hidden="true">
+          [Debug Info]
+          <p>
+            Loading url:{' '}
+            <a
+              href={`https://hacker-news.firebaseio.com/v0/item/${id}.json`}
+              target="_blank"
+              rel="nofollow"
+            ></a>
+          </p>
+          <p>
+            Source url:{' '}
+            <a
+              href={`https://news.ycombinator.com/item?id=${id}`}
+              target="_blank"
+              rel="nofollow"
+            ></a>
+          </p>
+        </div>
+      </>,
+    ],
+  ]
+}
+
 function renderStoryDetail(story: StoryDTO, currentUrl: string): Element {
   return [
     `div#story-detail`,
@@ -87,22 +104,7 @@ function renderStoryDetail(story: StoryDTO, currentUrl: string): Element {
       story.deleted ? (
         <p>[deleted]</p>
       ) : story.title ? (
-        <>
-          <StoryOverview story={story} />
-          {mapArray(story.kids || [], (id, i, ids) => (
-            <>
-              <Flush />
-              <StoryItemById
-                id={id}
-                indent={0}
-                nextId={ids[i + 1]}
-                parentIds={new Set([story.id])}
-                rootId={story.id}
-                currentUrl={currentUrl}
-              />
-            </>
-          ))}
-        </>
+        renderStoryDetailWithTitle(story, currentUrl)
       ) : story.text ? (
         <StoryItem
           item={story}
@@ -119,6 +121,24 @@ function renderStoryDetail(story: StoryDTO, currentUrl: string): Element {
   ]
 }
 
+function renderStoryDetailWithTitle(story: StoryDTO, currentUrl: string) {
+  let nodes = [<StoryOverview story={story} />]
+  story.kids?.forEach((id, i, ids) => {
+    nodes.push(
+      <Flush />,
+      <StoryItemById
+        id={id}
+        indent={0}
+        nextId={ids[i + 1]}
+        parentIds={new Set([story.id])}
+        rootId={story.id}
+        currentUrl={currentUrl}
+      />,
+    )
+  })
+  return [nodes]
+}
+
 function StoryItemById(
   attrs: {
     id: number
@@ -130,13 +150,28 @@ function StoryItemById(
   },
   context: Context,
 ): Element {
-  let item = getStoryById(attrs.id, story =>
+  let { id } = attrs
+  let item = getStoryById(id, story =>
     updateStoryItem({
       story,
       context,
       ...attrs,
     }),
   )
+  if (!item)
+    return renderStoryItem({
+      id,
+      indent: attrs.indent,
+      children: [
+        `Failed to load story #${id} at the moment, please try again later`,
+      ],
+    })
+  if (item instanceof Promise)
+    return renderStoryItem({
+      id,
+      indent: attrs.indent,
+      children: [`loading story #${id}`],
+    })
   return <StoryItem item={item} {...attrs} />
 }
 
@@ -158,19 +193,36 @@ function getRootStory(
 ): { id: number; title: string } {
   for (;;) {
     let story = getStoryById(id, story => updateRootStory(attrs))
-    if (story.title) {
-      return story
-    }
-    if (story.parent) {
-      id = story.parent
-      continue
+    if (story && !(story instanceof Promise)) {
+      if (story.title) {
+        return story
+      }
+      if (story.parent) {
+        id = story.parent
+        continue
+      }
     }
     return { id, title: '#' + id }
   }
 }
 
+function renderStoryItem(attrs: {
+  id: number
+  indent: number
+  children: NodeList
+}): Element {
+  return [
+    `div#item-${attrs.id}`,
+    { style: `margin-left: ${attrs.indent * 40}px` },
+    attrs.children,
+  ]
+}
+
 type StoryItemAttrs = {
-  item: StoryDTO
+  item: // | { id: number; type: 'error' }
+  // | { id: number; type: 'loading' }
+  // |
+  StoryDTO
   indent: number
   nextId: number | undefined
   parentIds: Set<number>
@@ -184,12 +236,10 @@ function StoryItem(attrs: StoryItemAttrs, context: Context): Element {
   let time = item.time * 1000
   attrs.parentIds.add(item.id)
   let rootStory = getRootStory(attrs.rootId || item.id, attrs)
-  return [
-    `div#item-${item.id}`,
-    {
-      style: `margin-left: ${attrs.indent * 40}px`,
-    },
-    [
+  return renderStoryItem({
+    id: item.id,
+    indent: attrs.indent,
+    children: [
       <div class="story-item">
         <div class="story-meta">
           {item.by ? (
@@ -237,6 +287,7 @@ function StoryItem(attrs: StoryItemAttrs, context: Context): Element {
           {item.by ? (
             <a
               href={`https://news.ycombinator.com/reply?id=${item.id}&goto=item?id=${rootStory.id}#${item.id}`}
+              target="_blank"
             >
               reply
             </a>
@@ -259,7 +310,7 @@ function StoryItem(attrs: StoryItemAttrs, context: Context): Element {
             ))}
       </div>,
     ],
-  ]
+  })
 }
 
 function resolve(
@@ -274,19 +325,28 @@ function resolve(
       node: <p>Error: Missing id in query</p>,
     }
   }
-  let preload = preloadStoryById(id)
   let currentUrl = context.url
-  let story = getStoryById(id, story => updateStoryDetail(story, currentUrl))
-  let route: StaticPageRoute = {
-    title: title(story.title || `Story Detail of id ${id}`),
-    description: story.text
-      ? story.text
-      : story.url
-      ? story.title + ': ' + story.url
-      : `Story detail of Hacker News (id: ${id})`,
-    node: renderStoryDetail(story, currentUrl),
-  }
-  return then(preload, () => route)
+  return then(
+    getStoryById(id, story => updateStoryDetail(story, currentUrl)),
+    (story): StaticPageRoute => {
+      if (!story) {
+        return {
+          title: title(`Story Detail of id ${id}`),
+          description: `Story detail of Hacker News (id: ${id})`,
+          node: renderStoryDetailError(id),
+        }
+      }
+      return {
+        title: title(story.title || `Story Detail of id ${id}`),
+        description: story.text
+          ? story.text
+          : story.url
+          ? story.title + ': ' + story.url
+          : `Story detail of Hacker News (id: ${id})`,
+        node: renderStoryDetail(story, currentUrl),
+      }
+    },
+  )
 }
 export default {
   resolve,
