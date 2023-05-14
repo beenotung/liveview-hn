@@ -256,18 +256,26 @@ function StoryItem(attrs: StoryItemAttrs, context: Context): Element {
               </Link>
             </>
           ) : null}
+          {attrs.indent >= 2 && item.parent ? (
+            <>
+              {' | '}
+              {!attrs.parentIds.has(item.parent) ? (
+                <Link href={'/item?id=' + rootStory.id}>root</Link>
+              ) : (
+                <a href={'#' + rootStory.id}>root</a>
+              )}
+            </>
+          ) : null}
           {item.parent ? (
             <>
               {' | '}
-              <Link
-                href={
-                  attrs.parentIds.has(item.parent)
-                    ? '#' + item.parent
-                    : '/item?id=' + item.parent
-                }
-              >
-                {attrs.topLevel ? 'on: ' + rootStory.title : 'parent'}
-              </Link>
+              {attrs.topLevel || !attrs.parentIds.has(item.parent) ? (
+                <Link href={'/item?id=' + item.parent}>
+                  {attrs.topLevel ? 'on: ' + rootStory.title : 'parent'}
+                </Link>
+              ) : (
+                <a href={'#' + item.parent}>parent</a>
+              )}
             </>
           ) : null}
           {attrs.nextId ? (
