@@ -5,6 +5,8 @@ import { o } from '../jsx/jsx.js'
 import DateTimeText, { toLocaleDateTimeString } from './datetime.js'
 import { Link } from './router.js'
 import type { Context } from '../context'
+import { FetchTask } from '../../fetch-cache.js'
+import { NodeList } from '../jsx/types.js'
 
 let style = Style(/* css */ `
 .story-overview h2 {
@@ -45,57 +47,64 @@ let style = Style(/* css */ `
 }
 `)
 
-function StoryOverview(attrs: { story: StoryDTO }, context: Context) {
-  let story = attrs.story
+function renderStoryOverview(id: number, children: NodeList) {
+  return [`div#item-${id}`, {}, children]
+}
+
+function StoryOverview(
+  attrs: { id: number; task?: FetchTask<StoryDTO>; story?: StoryDTO },
+  context: Context,
+) {
+  let { id, task } = attrs
+  let story = attrs.story || task?.data
+  if (!story) {
+    return renderStoryOverview(id, [`Loading story #${id}`])
+  }
   let time = story.time * 1000
-  return [
-    `div#item-${story.id}`,
-    {},
-    [
-      <div class="story-overview">
-        <h2>
-          {story.type !== 'story' ? (
-            <span class="story-type">{story.type}</span>
-          ) : null}
-          {story.title}
-        </h2>
-        {story.url ? (
-          <Link class="story-url" href={story.url}>
-            {story.url}
-          </Link>
+  return renderStoryOverview(id, [
+    <div class="story-overview">
+      <h2>
+        {story.type !== 'story' ? (
+          <span class="story-type">{story.type}</span>
         ) : null}
-        <div class="story-meta">
-          <span class="story-score">{story.score}</span>
-          <span class="story-by">
-            <Link href={'/user?id=' + story.by}>{story.by}</Link>
-          </span>
-          {time ? (
-            <>
-              {' | '}
-              <time
-                class="story-time"
-                datetime={new Date(time).toISOString()}
-                title={toLocaleDateTimeString(time, context)}
-              >
-                <DateTimeText time={time} relativeTimeThreshold={YEAR} />
-              </time>
-            </>
-          ) : null}
-          {' | '}
-          <Link class="story-comments" href={'/item?id=' + story.id}>
-            {story.descendants}
-          </Link>
-          {' | '}
-          <a
-            class="story-source"
-            href={'https://news.ycombinator.com/item?id=' + story.id}
-          >
-            HN
-          </a>
-        </div>
-      </div>,
-    ],
-  ]
+        {story.title}
+      </h2>
+      {story.url ? (
+        <Link class="story-url" href={story.url}>
+          {story.url}
+        </Link>
+      ) : null}
+      <div class="story-meta">
+        <span class="story-score">{story.score}</span>
+        <span class="story-by">
+          <Link href={'/user?id=' + story.by}>{story.by}</Link>
+        </span>
+        {time ? (
+          <>
+            {' | '}
+            <time
+              class="story-time"
+              datetime={new Date(time).toISOString()}
+              title={toLocaleDateTimeString(time, context)}
+            >
+              <DateTimeText time={time} relativeTimeThreshold={YEAR} />
+            </time>
+          </>
+        ) : null}
+        {' | '}
+        <Link class="story-comments" href={'/item?id=' + story.id}>
+          {story.descendants}
+        </Link>
+        {' | '}
+        <a
+          class="story-source"
+          href={'https://news.ycombinator.com/item?id=' + story.id}
+        >
+          HN
+        </a>
+      </div>
+    </div>,
+  ])
 }
 
 export default Object.assign(StoryOverview, { style })

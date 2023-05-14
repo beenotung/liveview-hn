@@ -122,7 +122,7 @@ function renderStoryDetail(story: StoryDTO, currentUrl: string): Element {
 }
 
 function renderStoryDetailWithTitle(story: StoryDTO, currentUrl: string) {
-  let nodes = [<StoryOverview story={story} />]
+  let nodes = [<StoryOverview id={story.id} story={story} />]
   story.kids?.forEach((id, i, ids) => {
     nodes.push(
       <Flush />,

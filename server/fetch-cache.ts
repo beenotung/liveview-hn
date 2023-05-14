@@ -16,7 +16,7 @@ function newCache(row: { url: string; exp: number; data: any }) {
   return proxy.cache[id]
 }
 
-class FetchTask<T> {
+export class FetchTask<T> {
   cache: Cache | null
   data?: T
   promise: Promise<T | void>
@@ -106,7 +106,7 @@ function fetchUrl<T>(url: string, updateFn: (data: T) => void): FetchTask<T> {
 
 function prefetch<T>(url: string) {
   let task = fetchUrl<T>(url, noop)
-  return task.promise
+  return task.data || task.promise
 }
 
 function noop() {
