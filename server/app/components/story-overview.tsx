@@ -1,5 +1,5 @@
 import { YEAR } from '@beenotung/tslib/time.js'
-import { StoryDTO } from '../../api.js'
+import { StoryDTO } from '../../hn-api.js'
 import Style from './style.js'
 import { o } from '../jsx/jsx.js'
 import DateTimeText, { toLocaleDateTimeString } from './datetime.js'

@@ -1,5 +1,5 @@
 import { then } from '@beenotung/tslib/result.js'
-import { fetchCache } from './fetch-cache'
+import { fetchCache } from './fetch-cache.js'
 
 function get<T>(url: string, updateFn: (data: T) => void) {
   let task = fetchCache.fetchUrl<T>(url, updateFn)
@@ -58,7 +58,7 @@ export type ProfileDTO = {
 }
 
 export function getProfile(
-  id: number,
+  id: string,
   updateFn: (profile: ProfileDTO) => void,
 ) {
   let url = `https://hacker-news.firebaseio.com/v0/user/${id}.json`
@@ -66,7 +66,7 @@ export function getProfile(
 }
 
 export function getUserSubmissions(
-  id: number,
+  id: string,
   updateProfile: (profile: ProfileDTO) => void,
   updateStory: (story: StoryDTO) => void,
 ) {

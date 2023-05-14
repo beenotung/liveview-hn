@@ -5,7 +5,7 @@ import {
   getUserSubmissions,
   ProfileDTO,
   StoryDTO,
-} from '../../hn-api'
+} from '../../hn-api.js'
 import { Flush } from '../components/flush.js'
 import { mapArray } from '../components/fragment.js'
 import StoryOverview from '../components/story-overview.js'
@@ -102,7 +102,9 @@ export function genStoryList(options: {
   function resolve(
     context: Context,
   ): StaticPageRoute | Promise<StaticPageRoute> {
-    let user_id = +options.apiUrl.replace(Submitted.apiPrefix, '')
+    let user_id = options.apiUrl.startsWith(Submitted.apiPrefix)
+      ? options.apiUrl.slice(Submitted.apiPrefix.length)
+      : ''
     return then(
       user_id
         ? getUserSubmissions(user_id, updateProfile, updateStory)

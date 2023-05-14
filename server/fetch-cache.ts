@@ -52,25 +52,20 @@ export class FetchTask<T> {
     } else {
       this.cache = newCache({ url: this.url, exp, data: null })
     }
-    return fetchQueue
-      .getText(this.url)
-      .then(text => {
-        let data = JSON.parse(text) as T
-        this.data = data
-        let exp = Date.now() + Expire_Interval
-        if (this.cache) {
-          this.cache.exp = exp
-          this.cache.data = text
-        } else {
-          this.cache = newCache({ url: this.url, exp, data: text })
-        }
+    return fetchQueue.getText(this.url).then(text => {
+      let data = JSON.parse(text) as T
+      this.data = data
+      let exp = Date.now() + Expire_Interval
+      if (this.cache) {
+        this.cache.exp = exp
+        this.cache.data = text
+      } else {
+        this.cache = newCache({ url: this.url, exp, data: text })
+      }
 
-        updateFn(data)
-        return data
-      })
-      .catch(error => {
-        console.error('Failed to GET:', this.url, 'Reason:', error)
-      })
+      updateFn(data)
+      return data
+    })
   }
   check(updateFn: (data: T) => void) {
     if (this.cache && this.cache.exp >= Date.now()) return
@@ -91,7 +86,7 @@ export function expireFetchTask(url: string) {
 }
 
 function fetchUrl<T>(url: string, updateFn: (data: T) => void): FetchTask<T> {
-  log('fetchUrl', url)
+  // log('fetchUrl', url)
 
   let task = tasks.get(url)
   if (task) {

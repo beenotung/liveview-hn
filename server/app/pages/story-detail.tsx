@@ -211,11 +211,7 @@ function renderStoryItem(attrs: {
   indent: number
   children: NodeList
 }): Element {
-  return [
-    `div#item-${attrs.id}`,
-    { style: `margin-left: ${attrs.indent * 40}px` },
-    attrs.children,
-  ]
+  return [`div#item-${attrs.id}`, { style: `margin-left: 3ch` }, attrs.children]
 }
 
 type StoryItemAttrs = {
