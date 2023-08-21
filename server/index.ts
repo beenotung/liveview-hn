@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 import spdy from 'spdy-fixes'
 import { WebSocketServer } from 'ws'
 import { config } from './config.js'
@@ -6,13 +6,14 @@ import { join } from 'path'
 import compression from 'compression'
 import { debugLog } from './debug.js'
 import { listenWSSConnection } from './ws/wss-lite.js'
-import { appRouter, onWsMessage } from './app/app.js'
+import { attachRoutes, onWsMessage } from './app/app.js'
 import { startSession, closeSession } from './app/session.js'
 import open from 'open'
 import { cookieMiddleware } from './app/cookie.js'
 import { listenWSSCookie } from './app/cookie.js'
 import { print } from 'listening-on'
 import { storeRequestLog } from '../db/store.js'
+import { HttpError } from './http-error.js'
 
 const log = debugLog('index.ts')
 log.enabled = true
@@ -48,9 +49,9 @@ if (!config.behind_proxy) {
 }
 if (config.development) {
   app.use('/js', express.static(join('dist', 'client')))
-} else {
-  app.use('/js', express.static('build'))
 }
+app.use('/js', express.static('build'))
+app.use('/uploads', express.static(config.upload_dir))
 app.use(express.static('public'))
 
 app.use(express.json())
@@ -58,7 +59,12 @@ app.use(express.urlencoded({ extended: true }))
 
 app.use(cookieMiddleware)
 
-app.use(appRouter)
+attachRoutes(app)
+
+app.use((error: HttpError, req: Request, res: Response, next: NextFunction) => {
+  res.status(error.statusCode || 500)
+  res.json({ error: String(error) })
+})
 
 const port = config.port
 const protocol = config.serverOptions.key ? 'https' : 'http'

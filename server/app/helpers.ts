@@ -1,8 +1,13 @@
 import type { ServerMessage } from '../../client/types'
 import type express from 'express'
+import { Node } from './jsx/types'
 
-export class Message {
+export class MessageException {
   constructor(public message: ServerMessage) {}
+}
+
+export class ErrorNode {
+  constructor(public node: Node) {}
 }
 
 /**
@@ -39,4 +44,10 @@ export function setNoCache(res: express.Response) {
   res.setHeader('Pragma', 'no-cache')
   res.setHeader('Expires', '0')
   res.setHeader('Surrogate-Control', 'no-store')
+}
+
+export function getStringCasual(body: any, key: string): string {
+  if (!body || typeof body !== 'object') return ''
+  let value = body[key]
+  return typeof value === 'string' ? value : ''
 }

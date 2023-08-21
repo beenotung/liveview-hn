@@ -12,6 +12,7 @@ export function Script(js: string): Element {
       let code = esbuild.transformSync(js, {
         minify: true,
         loader: 'js',
+        target: config.client_target,
       }).code
       cache.set(js, code)
       js = code
@@ -19,6 +20,22 @@ export function Script(js: string): Element {
   }
   const raw: Raw = ['raw', js]
   return ['script', undefined, [raw]]
+}
+
+// use iife (Immediately Invoked Function Expression) to avoid name clash with other parts of the page.
+export function iife<F extends () => void>(fn: F): Element
+export function iife<F extends (...args: any[]) => void>(
+  fn: F,
+  args: Parameters<F>,
+): Element
+export function iife<F extends (...args: any[]) => void>(
+  fn: F,
+  args?: Parameters<F>,
+): Element {
+  if (args && args.length > 0) {
+    return Script(`(${fn}).apply(this,${JSON.stringify(args)})`)
+  }
+  return Script(`(${fn})()`)
 }
 
 /**

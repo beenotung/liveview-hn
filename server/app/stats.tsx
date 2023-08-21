@@ -2,10 +2,17 @@ import type { ServerMessage } from '../../client/types'
 import type { ManagedWebsocket } from '../ws/wss.js'
 import { o } from './jsx/jsx.js'
 import { onWsSessionClose, sessions } from './session.js'
-import { existsSync, mkdirSync, readFileSync, writeFile, rename } from 'fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFile,
+  rename,
+  renameSync,
+} from 'fs'
 import { debugLog } from '../debug.js'
 import { join } from 'path'
-import { Context } from './context.js'
+import type { Context } from './context'
 
 let log = debugLog('stats.tsx')
 log.enabled = true
@@ -56,21 +63,32 @@ function saveNumber(file: string, value: number) {
 }
 
 mkdirSync('data', { recursive: true })
-let visitorFile = join('data', 'visitor.txt')
+
+function migrateVisitFile() {
+  if (
+    existsSync(join('data', 'visitor.txt')) &&
+    !existsSync(join('data', 'visit.txt'))
+  ) {
+    renameSync(join('data', 'visitor.txt'), join('data', 'visit.txt'))
+  }
+}
+migrateVisitFile()
+
+let visitFile = join('data', 'visit.txt')
 let sessionFile = join('data', 'session.txt')
 
 let state = {
-  visitor: loadNumber(visitorFile),
+  visit: loadNumber(visitFile),
   session: loadNumber(sessionFile),
   live: new Set<ManagedWebsocket>(),
 }
 
-export function Stats(_attrs: {}, context: Context) {
+export function Stats(attrs: { hidden?: boolean }, context: Context) {
   let messages: ServerMessage[] = []
   if (context.type === 'express') {
-    state.visitor++
-    saveNumber(visitorFile, state.visitor)
-    messages.push(['update-text', '#stats .visitor', state.visitor])
+    state.visit++
+    saveNumber(visitFile, state.visit)
+    messages.push(['update-text', '#stats .visit', state.visit])
   }
   let ws: ManagedWebsocket | undefined
   if (context.type === 'ws') {
@@ -97,12 +115,12 @@ export function Stats(_attrs: {}, context: Context) {
   }
   sendMessage(['batch', messages], ws)
   return (
-    <div id="stats">
+    <div id="stats" hidden={attrs.hidden || undefined}>
       <table>
         <tbody>
           <tr>
-            <td>#visitor</td>
-            <td class="visitor">{state.visitor}</td>
+            <td>#visit</td>
+            <td class="visit">{state.visit}</td>
           </tr>
           <tr>
             <td>#session</td>

@@ -1,17 +1,20 @@
 import { o } from './jsx/jsx.js'
-import type { index } from '../../template/index.html'
-import { loadTemplate } from '../template.js'
-import express, { Response } from 'express'
+import { scanTemplateDir } from '../template.js'
+import { NextFunction, Request, Response, Router } from 'express'
 import type { Context, ExpressContext, WsContext } from './context'
 import type { Component, Element, Node } from './jsx/types'
-import { nodeToHTML, writeNode } from './jsx/html.js'
+import {
+  escapeHTMLAttributeValue,
+  escapeHTMLTextContent,
+  unquote,
+  writeNode,
+} from './jsx/html.js'
 import { sendHTMLHeader } from './express.js'
 import { Link } from './components/router.js'
 import { OnWsMessage } from '../ws/wss.js'
 import { dispatchUpdate } from './jsx/dispatch.js'
 import { EarlyTerminate } from './helpers.js'
 import { getWSSession } from './session.js'
-import escapeHtml from 'escape-html'
 import { Flush } from './components/flush.js'
 import { config } from '../config.js'
 import Style from './components/style.js'
@@ -22,8 +25,26 @@ import { join } from 'path'
 import { matchRoute, PageRouteMatch, redirectDict } from './routes.js'
 import type { ClientMountMessage, ClientRouteMessage } from '../../client/types'
 import { then } from '@beenotung/tslib/result.js'
+import { renderIndexTemplate } from '../../template/index.js'
+import type { HTMLStream } from './jsx/stream'
+import { getWsCookies } from './cookie.js'
 
-let template = loadTemplate<index>('index')
+if (config.development) {
+  scanTemplateDir('template')
+}
+function renderTemplate(
+  stream: HTMLStream,
+  context: Context,
+  options: { title: string; description: string; app: Node },
+) {
+  const app = options.app
+  renderIndexTemplate(stream, {
+    title: escapeHTMLTextContent(options.title),
+    description: unquote(escapeHTMLAttributeValue(options.description)),
+    app:
+      typeof app == 'string' ? app : stream => writeNode(stream, app, context),
+  })
+}
 
 let scripts = config.development ? (
   <script src="/js/index.js" type="module" defer></script>
@@ -80,7 +101,7 @@ let header = (
   </header>
 )
 
-export function App(main: Node): Element {
+export function App(route: PageRouteMatch): Element {
   // you can write the AST direct for more compact wire-format
   return [
     'div.app',
@@ -92,7 +113,7 @@ export function App(main: Node): Element {
         {header}
         {scripts}
         <Flush />
-        <main>{main}</main>
+        <main>{route.node}</main>
         <Flush />
         <footer>
           <span class="yclinks">
@@ -120,16 +141,21 @@ export function App(main: Node): Element {
   ]
 }
 
-export let appRouter = express.Router()
+// prefer flat router over nested router for less overhead
+export function attachRoutes(app: Router) {
+  // ajax/middleware routes
+  // DemoUpload.attachRoutes(app)
 
-// non-streaming routes
-appRouter.use((req, res, next) => next())
-Object.entries(redirectDict).forEach(([from, to]) =>
-  appRouter.use(from, (_req, res) => res.redirect(to)),
-)
+  // redirect routes
+  Object.entries(redirectDict).forEach(([from, to]) =>
+    app.use(from, (_req, res) => res.redirect(to)),
+  )
 
-// html-streaming routes
-appRouter.use((req, res, next) => {
+  // liveview routes
+  app.use(handleLiveView)
+}
+
+function handleLiveView(req: Request, res: Response, next: NextFunction) {
   sendHTMLHeader(res)
 
   let context: ExpressContext = {
@@ -153,34 +179,40 @@ appRouter.use((req, res, next) => {
       streamHTML(res, context, route)
     }
   })
-})
+}
 
 function responseHTML(
   res: Response,
   context: ExpressContext,
   route: PageRouteMatch,
 ) {
-  let app: string
+  let html = ''
+  let stream = {
+    write(chunk: string) {
+      html += chunk
+    },
+    flush() {},
+  }
+
   try {
-    app = nodeToHTML(App(route.node), context)
+    renderTemplate(stream, context, {
+      title: route.title || config.site_name,
+      description: route.description || config.site_description,
+      app: App(route),
+    })
   } catch (error) {
     if (error === EarlyTerminate) {
       return
     }
     console.error('Failed to render App:', error)
-    res.status(500)
-    if (error instanceof Error) {
-      app = 'Internal Error: ' + escapeHtml(error.message)
-    } else {
-      app = 'Unknown Error: ' + escapeHtml(String(error))
+    if (!res.headersSent) {
+      res.status(500)
     }
+    html +=
+      error instanceof Error
+        ? 'Internal Error: ' + escapeHTMLTextContent(error.message)
+        : 'Unknown Error: ' + escapeHTMLTextContent(String(error))
   }
-
-  let html = template({
-    title: route.title || config.site_name,
-    description: route.description || config.site_description,
-    app,
-  })
 
   // deepcode ignore XSS: the dynamic content is html-escaped
   res.end(html)
@@ -191,39 +223,28 @@ function streamHTML(
   context: ExpressContext,
   route: PageRouteMatch,
 ) {
-  let appPlaceholder = '<!-- app -->'
-  let html = template({
-    title: route.title || config.site_name,
-    description: route.description || config.site_description,
-    app: appPlaceholder,
-  })
-  let idx = html.indexOf(appPlaceholder)
-
-  let beforeApp = html.slice(0, idx)
-  res.write(beforeApp)
-  res.flush()
-
-  let afterApp = html.slice(idx + appPlaceholder.length)
-
   try {
-    // send the html chunks in streaming
-    writeNode(res, App(route.node), context)
+    renderTemplate(res, context, {
+      title: route.title || config.site_name,
+      description: route.description || config.site_description,
+      app: App(route),
+    })
+    res.end()
   } catch (error) {
     if (error === EarlyTerminate) {
       return
     }
     console.error('Failed to render App:', error)
-    if (error instanceof Error) {
-      // deepcode ignore XSS: the dynamic content is html-escaped
-      res.write('Internal Error: ' + escapeHtml(error.message))
-    } else {
-      res.write('Unknown Error: ' + escapeHtml(String(error)))
+    if (!res.headersSent) {
+      res.status(500)
     }
+    // deepcode ignore XSS: the dynamic content is html-escaped
+    res.end(
+      error instanceof Error
+        ? 'Internal Error: ' + escapeHTMLTextContent(error.message)
+        : 'Unknown Error: ' + escapeHTMLTextContent(String(error)),
+    )
   }
-
-  res.write(afterApp)
-
-  res.end()
 }
 
 export let onWsMessage: OnWsMessage = (event, ws, _wss) => {
@@ -237,12 +258,23 @@ export let onWsMessage: OnWsMessage = (event, ws, _wss) => {
     event = event as ClientMountMessage
     eventType = 'mount'
     url = event[1]
-    session.locales = event[2]
+    session.language = event[2]
     let timeZone = event[3]
     if (timeZone && timeZone !== 'null') {
       session.timeZone = timeZone
     }
     session.timezoneOffset = event[4]
+    let cookie = event[5]
+    if (cookie) {
+      getWsCookies(ws.ws).unsignedCookies = Object.fromEntries(
+        new URLSearchParams(
+          cookie
+            .split(';')
+            .map(s => s.trim())
+            .join('&'),
+        ),
+      )
+    }
   } else if (event[0][0] === '/') {
     event = event as ClientRouteMessage
     eventType = 'route'
@@ -262,7 +294,7 @@ export let onWsMessage: OnWsMessage = (event, ws, _wss) => {
     session,
   }
   then(matchRoute(context), route => {
-    let node = App(route.node)
+    let node = App(route)
     dispatchUpdate(context, node, route.title)
   })
 }

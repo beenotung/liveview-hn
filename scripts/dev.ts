@@ -19,7 +19,9 @@ if (mode != 'build' && mode != 'serve') {
 
 main()
 
-let stop = async () => {}
+let stop = async () => {
+  /* this callback will be replaced to dispose current context */
+}
 
 if (mode === 'serve') {
   process.stdin.on('data', async chunk => {
@@ -95,9 +97,7 @@ async function build(files: string[]) {
     outdir: './dist',
     platform: 'node',
     format: 'esm',
-    jsx: 'transform',
-    jsxFactory: 'o',
-    jsxFragment: 'null',
+    target: 'es2022',
     plugins,
   })
   await context.rebuild()

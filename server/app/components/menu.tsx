@@ -6,27 +6,36 @@ import { Link } from './router.js'
 import { Style } from './style.js'
 import { Context, getContextUrl } from '../context.js'
 import { capitalize } from '@beenotung/tslib/string.js'
-import { getContextCookie } from '../cookie.js'
 
 export type MenuRoute = {
   url: string
   menuText: string
   menuUrl?: string // optional, default to be same as PageRoute.url
-  guestOnly?: boolean
-  userOnly?: boolean
+  menuMatchPrefix?: boolean
+}
+
+export function isCurrentMenuRoute(
+  currentUrl: string,
+  route: MenuRoute,
+): boolean {
+  return route.menuMatchPrefix
+    ? currentUrl.startsWith(route.url) ||
+        (route.menuUrl && currentUrl.startsWith(route.menuUrl)) ||
+        false
+    : currentUrl == route.url ||
+        (route.menuUrl && currentUrl == route.menuUrl) ||
+        false
 }
 
 export function Menu(
   attrs: {
     routes: MenuRoute[]
-    matchPrefix?: boolean
     separator?: Node
     attrs?: attrs
   },
   context: Context,
 ) {
   const currentUrl = getContextUrl(context)
-  const role = getContextCookie(context)?.token ? 'user' : 'guest'
   return (
     <>
       {Style(/* css */ `
@@ -41,24 +50,12 @@ export function Menu(
 `)}
       <div class="menu" {...attrs.attrs}>
         {mapArray(
-          attrs.routes.filter(
-            route =>
-              !(
-                (route.guestOnly && role !== 'guest') ||
-                (route.userOnly && role !== 'user')
-              ),
-          ),
+          attrs.routes,
           route => (
             <Link
               href={route.menuUrl || route.url}
               class={flagsToClassName({
-                selected:
-                  currentUrl === route.url ||
-                  (route.menuUrl
-                    ? attrs.matchPrefix
-                      ? currentUrl.startsWith(route.menuUrl)
-                      : currentUrl === route.menuUrl
-                    : false),
+                selected: isCurrentMenuRoute(currentUrl, route),
               })}
             >
               {route.menuText}

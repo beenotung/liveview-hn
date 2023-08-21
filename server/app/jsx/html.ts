@@ -1,4 +1,3 @@
-import escapeHTML from 'escape-html'
 import type { Context } from '../context'
 import debug from 'debug'
 import type {
@@ -13,11 +12,34 @@ import type {
 } from './types'
 import { HTMLStream, noop } from './stream.js'
 import { Flush } from '../components/flush.js'
-import { renderError } from '../components/error.js'
-import { EarlyTerminate, Message } from '../helpers.js'
+import { renderError, renderErrorNode } from '../components/error.js'
+import { EarlyTerminate, ErrorNode, MessageException } from '../helpers.js'
 
 const log = debug('html.ts')
 log.enabled = true
+
+/**
+ * only use for textContent, not attribute values
+ */
+export function escapeHTMLTextContent(str: string): string {
+  str = str.replace(/&/g, '&amp;')
+  str = str.replace(/</g, '&lt;')
+  str = str.replace(/>/g, '&gt;')
+  // str = str.replace(/"/g, '&quot;')
+  // str = str.replace(/'/g, '&#39;')
+  return str
+}
+
+export function escapeHTMLAttributeValue(
+  str: string | number | boolean,
+): string {
+  return JSON.stringify(str)
+}
+
+// to be used in template that has already wrapped the attribute value in double quotes
+export function unquote(str: string): string {
+  return str.slice(1, str.length - 1)
+}
 
 export function nodeToHTML(node: Node, context: Context): html {
   let html = ''
@@ -58,7 +80,7 @@ export function writeNode(
   }
   switch (typeof node) {
     case 'string':
-      return stream.write(escapeHTML(node))
+      return stream.write(escapeHTMLTextContent(node))
     case 'number':
       return stream.write(String(node))
   }
@@ -90,9 +112,14 @@ export function writeNode(
       node = componentFn(attrs, context)
       writeNode(stream, node, context)
     } catch (error) {
-      if (error === EarlyTerminate || error instanceof Message) throw error
-      console.error('Caught error from componentFn:', error)
-      writeNode(stream, renderError(error, context), context)
+      if (error === EarlyTerminate || error instanceof MessageException)
+        throw error
+      if (error instanceof ErrorNode) {
+        writeNode(stream, renderErrorNode(error, context), context)
+      } else {
+        console.error('Caught error from componentFn:', error)
+        writeNode(stream, renderError(error, context), context)
+      }
     }
     return
   }
@@ -151,7 +178,7 @@ function writeElement(
             return
           }
       }
-      value = JSON.stringify(value)
+      value = escapeHTMLAttributeValue(value)
       html += ` ${name}=${value}`
     })
   }

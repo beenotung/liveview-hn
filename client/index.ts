@@ -47,6 +47,11 @@ connectWS({
 
     function emitForm(event: Event) {
       let form = event.target as HTMLFormElement
+      submitForm(form)
+      event.preventDefault()
+    }
+
+    function submitForm(form: HTMLFormElement) {
       let data = {} as Record<string, FormDataEntryValue | FormDataEntryValue[]>
       new FormData(form).forEach((value, key) => {
         if (key in data) {
@@ -62,7 +67,6 @@ connectWS({
       })
       let url = form.getAttribute('action') || location.href.replace(origin, '')
       emit(url, data)
-      event.preventDefault()
     }
 
     window.onpopstate = (_event: PopStateEvent) => {
@@ -73,9 +77,13 @@ connectWS({
     win.emit = emit
     win.emitHref = emitHref
     win.emitForm = emitForm
+    win.submitForm = submitForm
+    win.remount = mount
 
-    ws.ws.addEventListener('open', () => {
-      let locale =
+    ws.ws.addEventListener('open', mount)
+
+    function mount() {
+      let language =
         navigator && navigator.language ? navigator.language : undefined
       let url = location.href.replace(origin, '')
       let timeZone = Intl
@@ -85,12 +93,13 @@ connectWS({
       let message: ClientMessage = [
         'mount',
         url,
-        locale,
+        language,
         timeZone,
         timezoneOffset,
+        document.cookie,
       ]
       ws.send(message)
-    })
+    }
 
     const status = document.querySelector('#ws_status')
     if (status) {
@@ -161,7 +170,19 @@ function get(url: string) {
   return fetch(url)
 }
 win.get = get
+
 function del(url: string) {
   return fetch(url, { method: 'DELETE' })
 }
 win.del = del
+
+function upload(event: Event) {
+  let form = event.target as HTMLFormElement
+  let result = fetch(form.action, {
+    method: 'POST',
+    body: new FormData(form),
+  })
+  event.preventDefault()
+  return result
+}
+win.upload = upload

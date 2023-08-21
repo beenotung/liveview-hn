@@ -1,5 +1,5 @@
 import { format_relative_time } from '@beenotung/tslib/format.js'
-import type { Context } from '../context'
+import { getContextLanguage, Context, getContextTimezone } from '../context.js'
 import { debugLog } from '../../debug.js'
 import { Session, sessionToContext } from '../session.js'
 import {
@@ -62,17 +62,8 @@ export function toLocaleDateTimeString(
   context: Context,
   options: LocaleDateTimeFormatOptions = DefaultLocaleDateTimeFormatOptions,
 ): string {
-  let locales: string | undefined
-  let timeZone: string | undefined
-  if (context.type === 'express') {
-    locales = context.req.headers['accept-language']
-      ?.split(',')[0]
-      .replace('_', '-')
-  } else if (context.type === 'ws') {
-    let session = context.session
-    locales = session.locales
-    timeZone = session.timeZone
-  }
+  let locales: string | undefined = getContextLanguage(context)
+  let timeZone: string | undefined = getContextTimezone(context)
   if (locales === '*') {
     locales = undefined
   }
@@ -202,16 +193,22 @@ function formatRelativeTime(
     if (diff < interval) {
       return [
         floor(diff / lastInterval) + ' ' + lastUnit + 's',
-        lastInterval - (diff % lastInterval),
+        Math.min(MaxTimeoutInterval, lastInterval - (diff % lastInterval)),
       ]
     }
     if (diff === interval) {
-      return ['1 ' + unit, interval - (diff % interval)]
+      return [
+        '1 ' + unit,
+        Math.min(MaxTimeoutInterval, interval - (diff % interval)),
+      ]
     }
     lastInterval = interval
     lastUnit = unit
   }
   return null
 }
+
+// timeout interval must fit into a 32-bit signed integer
+const MaxTimeoutInterval = 2147483647
 
 export default DateTimeText
