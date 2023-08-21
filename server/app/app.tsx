@@ -91,7 +91,7 @@ let header = (
   <header>
     <Link href="/">
       <img
-        src="https://news.ycombinator.com/y18.gif"
+        src="https://news.ycombinator.com/y18.svg"
         style="border:1px white solid;"
         width="18"
         height="18"
