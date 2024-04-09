@@ -1,18 +1,20 @@
 import { capitalize } from '@beenotung/tslib/string.js'
 import { Router } from 'url-router.ts'
-import { config, title } from '../config.js'
+import {  config, title } from '../config.js'
 import { Redirect } from './components/router.js'
 import type { DynamicContext } from './context'
 import { o } from './jsx/jsx.js'
 import type { Node } from './jsx/types'
 import UserAgents from './pages/user-agents.js'
-import NotMatch from './pages/not-match.js'
+import NotFoundPageRoute from './pages/not-found.js'
 import StoryList from './pages/story-list.js'
 import StoryDetail from './pages/story-detail.js'
 import Profile from './pages/profile.js'
 import NotImplemented from './pages/not-implemented.js'
 import { then } from '@beenotung/tslib/result.js'
 import type { MenuRoute } from './components/menu'
+import type { renderWebTemplate } from '../../template/web.js'
+import { VNode } from '../../client/jsx/types.js'
 
 let titles: Record<string, string> = {}
 
@@ -25,19 +27,27 @@ const StreamingByDefault = true
 
 export type PageRoute = PageRouteOptions & (StaticPageRoute | DynamicPageRoute)
 
+type TemplateFn = typeof renderWebTemplate
+
+type RenderOptions = {
+  renderTemplate?: TemplateFn
+}
+
 export type PageRouteOptions = {
   // streaming is enabled by default
   // HTTP headers cannot be set when streaming
   // If you need to set cookies or apply redirection, you may use an express middleware before the generic app route
   streaming?: boolean
-} & Partial<MenuRoute>
+} & Partial<MenuRoute> &
+  RenderOptions
 
 export type StaticPageRoute = {
   title: string
-  node: Node
+  node: Node | VNode
   description: string
   status?: number
-}
+} & RenderOptions
+
 export type DynamicPageRoute = {
   resolve: (context: DynamicContext) => ResolvedPageRoue
 }
@@ -52,7 +62,7 @@ export type Routes = Record<string, PageRoute>
 // or invoke functional component with x-html tag, e.g. `<Editor/>
 
 // TODO direct support alternative urls instead of having to repeat the entry
-let routeDict: Record<string, PageRoute> = {
+let routeDict: Routes = {
   '/': StoryList.HomeStories,
   '/news': StoryList.TopStories,
   '/item': StoryDetail,
@@ -103,10 +113,11 @@ Object.entries(routeDict).forEach(([url, route]) => {
   pageRouter.add(url, { url, ...route })
   if (route.menuText) {
     menuRoutes.push({
-      ...route,
       url,
       menuText: route.menuText,
       menuUrl: route.menuUrl || url,
+      menuMatchPrefix: route.menuMatchPrefix,
+      menuFullNavigate: route.menuFullNavigate,
     })
   }
 })
@@ -121,18 +132,11 @@ Object.entries(redirectDict).forEach(([url, href]) =>
   }),
 )
 
-export let NotFoundPage: PageRoute = {
-  title: title('Page Not Found'),
-  description: 'This page is not found. Probably due to outdated menu.',
-  node: NotMatch,
-  status: 404,
-}
-
 export function matchRoute(
   context: DynamicContext,
 ): PageRouteMatch | Promise<PageRouteMatch> {
   let match = pageRouter.route(context.url)
-  let route: PageRoute = match ? match.value : NotFoundPage
+  let route: PageRoute = match ? match.value : NotFoundPageRoute
   if (route.streaming === undefined) {
     route.streaming = StreamingByDefault
   }

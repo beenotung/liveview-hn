@@ -2,6 +2,8 @@ import type { Server } from 'ws'
 import type { ServerMessage } from '../../client/types'
 import { debugLog } from '../debug.js'
 import type { ManagedWebsocket, OnWsMessage } from './wss'
+import { Request } from 'express'
+import { newRequestSession } from '../../db/request-log.js'
 
 let log = debugLog('wss-native.ts')
 log.enabled = true
@@ -13,7 +15,7 @@ export function listenWSSConnection(options: {
   onMessage: OnWsMessage
 }) {
   const { wss } = options
-  wss.on('connection', ws => {
+  wss.on('connection', (ws, request) => {
     if (ws.protocol !== 'ws-native') {
       log('unknown ws protocol:', ws.protocol)
       return
@@ -36,7 +38,14 @@ export function listenWSSConnection(options: {
       options.onMessage(event, managedWS, wss)
     })
 
-    const managedWS: ManagedWebsocket = { ws, wss, send, close }
+    const managedWS: ManagedWebsocket = {
+      ws,
+      wss,
+      request: request as Request,
+      session_id: newRequestSession(),
+      send,
+      close,
+    }
     options.onConnection(managedWS)
   })
 }

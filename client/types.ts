@@ -1,3 +1,4 @@
+import type { WindowStub } from './internal'
 import type {
   attrs,
   props,
@@ -14,6 +15,8 @@ export type ClientMountMessage = [
   timeZone: string | undefined,
   timezoneOffset: number,
   cookie: string,
+  navigation_type: WindowStub['_navigation_type_'],
+  navigation_method: WindowStub['_navigation_method_'],
 ]
 type Prefix<K extends string, T extends string> = `${K}${T}`
 export type ClientRouteMessage = [url: Prefix<'/', string>, data?: unknown]
@@ -23,6 +26,7 @@ export type ServerMessage =
   | ['update', VElement, title?]
   | ['update-in', selector, VNode, title?]
   | ['append', selector, VNode]
+  | ['insert-before', selector, VNode]
   | ['remove', selector]
   | ['update-text', selector, string | number]
   | ['update-all-text', selector, string | number]
@@ -32,3 +36,5 @@ export type ServerMessage =
   | ['batch', ServerMessage[]]
   | ['set-cookie', string]
   | ['set-title', title]
+  | ['redirect', string]
+  | ['eval', string]

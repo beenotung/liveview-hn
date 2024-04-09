@@ -8,38 +8,51 @@ import {
   updateProps,
   updateText,
   setValue,
+  insertNodeBefore,
 } from './jsx/dom.js'
 import { connectWS } from './ws/ws-lite.js'
-import type { WindowStub } from './internal'
+import type { LinkFlag, WindowStub } from './internal'
 import type { ClientMessage, ServerMessage } from './types'
 
 let win = window as unknown as WindowStub
 let origin = location.origin
 let wsUrl = origin.replace('http', 'ws')
+let { ws_status } = win
 connectWS({
   createWS(protocol) {
-    let status = document.querySelector('#ws_status')
-    if (status) {
-      status.textContent = 'connecting ws...'
+    if (ws_status) {
+      ws_status.hidden = false
+      ws_status.textContent = 'connecting ws...'
     }
     return new WebSocket(wsUrl, [protocol])
   },
   attachWS(ws) {
     console.debug('attach ws')
 
-    let emit: WindowStub['emit'] = function emit() {
+    function emit(...args: unknown[]): void
+    function emit(): void {
       ws.send(Array.from(arguments) as ClientMessage)
     }
 
-    function emitHref(event: MouseEvent, flag?: 'q') {
+    function emitHref(event: MouseEvent, flag?: LinkFlag) {
       if (event.ctrlKey || event.shiftKey) {
         return // do not prevent open in new tab or new window
       }
       let a = event.currentTarget as HTMLAnchorElement
       let url = a.getAttribute('href')
-      if (flag !== 'q') {
+      // flag
+      let quiet = flag?.includes('q')
+      let fast = flag?.includes('f')
+      let back = flag?.includes('b')
+      if (!quiet) {
         let title = a.getAttribute('title') || document.title
         history.pushState(null, title, url)
+      }
+      if (fast) {
+        document.body.classList.add('no-animation')
+      }
+      if (back) {
+        document.body.classList.add('back')
       }
       emit(url)
       event.preventDefault()
@@ -52,8 +65,17 @@ connectWS({
     }
 
     function submitForm(form: HTMLFormElement) {
+      let formData = new FormData(form)
+      if (form.method === 'get') {
+        let url = new URL(form.action || location.href)
+        url.search = new URLSearchParams(formData as {}).toString()
+        let href = url.href.replace(origin, '')
+        history.pushState(null, document.title, href)
+        emit(href)
+        return
+      }
       let data = {} as Record<string, FormDataEntryValue | FormDataEntryValue[]>
-      new FormData(form).forEach((value, key) => {
+      formData.forEach((value, key) => {
         if (key in data) {
           let prevValue = data[key]
           if (Array.isArray(prevValue)) {
@@ -97,17 +119,22 @@ connectWS({
         timeZone,
         timezoneOffset,
         document.cookie,
+        win._navigation_type_,
+        win._navigation_method_,
       ]
       ws.send(message)
     }
 
-    const status = document.querySelector('#ws_status')
-    if (status) {
+    if (ws_status) {
       ws.ws.addEventListener('open', () => {
-        status.textContent = 'connected ws'
+        if (!ws_status) return
+        ws_status.hidden = true
+        ws_status.textContent = 'connected ws'
       })
       ws.ws.addEventListener('close', () => {
-        status.textContent = 'disconnected ws'
+        if (!ws_status) return
+        ws_status.hidden = false
+        ws_status.textContent = 'disconnected ws'
       })
     }
   },
@@ -133,6 +160,9 @@ function onServerMessage(message: ServerMessage) {
       break
     case 'append':
       appendNode(message[1], message[2])
+      break
+    case 'insert-before':
+      insertNodeBefore(message[1], message[2])
       break
     case 'remove':
       removeNode(message[1])
@@ -161,10 +191,17 @@ function onServerMessage(message: ServerMessage) {
     case 'set-title':
       document.title = message[1]
       break
+    case 'redirect':
+      location.href = message[1]
+      break
+    case 'eval':
+      eval(message[1])
+      break
     default:
       console.error('unknown server message:', message)
   }
 }
+win.onServerMessage = onServerMessage
 
 function get(url: string) {
   return fetch(url)
@@ -176,13 +213,18 @@ function del(url: string) {
 }
 win.del = del
 
-function upload(event: Event) {
+function uploadForm(event: Event) {
   let form = event.target as HTMLFormElement
-  let result = fetch(form.action, {
-    method: 'POST',
-    body: new FormData(form),
-  })
+  let result = upload(form.action, new FormData(form))
   event.preventDefault()
   return result
+}
+win.uploadForm = uploadForm
+
+function upload(url: string, formData: FormData) {
+  return fetch(url, {
+    method: 'POST',
+    body: formData,
+  })
 }
 win.upload = upload

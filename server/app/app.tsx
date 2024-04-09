@@ -1,5 +1,5 @@
 import { o } from './jsx/jsx.js'
-import { scanTemplateDir } from '../template.js'
+import { scanTemplateDir } from '../template-file.js'
 import { NextFunction, Request, Response, Router } from 'express'
 import type { Context, ExpressContext, WsContext } from './context'
 import type { Component, Element, Node } from './jsx/types'
@@ -13,21 +13,24 @@ import { sendHTMLHeader } from './express.js'
 import { Link } from './components/router.js'
 import { OnWsMessage } from '../ws/wss.js'
 import { dispatchUpdate } from './jsx/dispatch.js'
-import { EarlyTerminate } from './helpers.js'
+import { EarlyTerminate, MessageException } from './helpers.js'
 import { getWSSession } from './session.js'
 import { Flush } from './components/flush.js'
 import { config } from '../config.js'
 import Style from './components/style.js'
 import Stats from './stats.js'
-import { MuteConsole } from './components/script.js'
+import { MuteConsole, Script } from './components/script.js'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { matchRoute, PageRouteMatch, redirectDict } from './routes.js'
 import type { ClientMountMessage, ClientRouteMessage } from '../../client/types'
 import { then } from '@beenotung/tslib/result.js'
-import { renderIndexTemplate } from '../../template/index.js'
-import type { HTMLStream } from './jsx/stream'
+import { renderWebTemplate } from '../../template/web.js'
+import { HTMLStream } from './jsx/stream.js'
 import { getWsCookies } from './cookie.js'
+import { logRequest } from './log.js'
+import { WindowStub } from '../../client/internal.js'
+import { updateRequestSession } from '../../db/request-log.js'
 
 if (config.development) {
   scanTemplateDir('template')
@@ -35,22 +38,35 @@ if (config.development) {
 function renderTemplate(
   stream: HTMLStream,
   context: Context,
-  options: { title: string; description: string; app: Node },
+  route: PageRouteMatch,
 ) {
-  const app = options.app
-  renderIndexTemplate(stream, {
-    title: escapeHTMLTextContent(options.title),
-    description: unquote(escapeHTMLAttributeValue(options.description)),
+  let app = App(route)
+  let render = route.renderTemplate || renderWebTemplate
+  render(stream, {
+    title: escapeHTMLTextContent(route.title),
+    description: unquote(escapeHTMLAttributeValue(route.description)),
     app:
       typeof app == 'string' ? app : stream => writeNode(stream, app, context),
   })
 }
 
+function CurrentNavigationMetaData(attrs: {}, context: Context) {
+  let js = `_navigation_type_="${context.type}";`
+  if (context.type == 'express') {
+    js += `_navigation_method_="${context.req.method}";`
+  }
+  return Script(js)
+}
+
 let scripts = config.development ? (
-  <script src="/js/index.js" type="module" defer></script>
+  <>
+    <CurrentNavigationMetaData />
+    <script src="/js/index.js" type="module" defer></script>
+  </>
 ) : (
   <>
     {MuteConsole}
+    <CurrentNavigationMetaData />
     <script src="/js/bundle.min.js" type="module" defer></script>
   </>
 )
@@ -59,7 +75,7 @@ let style = Style(readFileSync(join('template', 'style.css')).toString())
 
 function Menu(_attrs: {}, context: Context) {
   let url = context.type === 'static' ? '?' : context.url
-  const link = (href: string, text: string): Component<{ href: string }> => [
+  const link = (href: string, text: string) => [
     Link,
     url === href ? { href, class: 'topsel' } : { href },
     [text],
@@ -143,8 +159,7 @@ export function App(route: PageRouteMatch): Element {
 
 // prefer flat router over nested router for less overhead
 export function attachRoutes(app: Router) {
-  // ajax/middleware routes
-  // DemoUpload.attachRoutes(app)
+  // ajax/upload/middleware routes
 
   // redirect routes
   Object.entries(redirectDict).forEach(([from, to]) =>
@@ -195,11 +210,7 @@ function responseHTML(
   }
 
   try {
-    renderTemplate(stream, context, {
-      title: route.title || config.site_name,
-      description: route.description || config.site_description,
-      app: App(route),
-    })
+    renderTemplate(stream, context, route)
   } catch (error) {
     if (error === EarlyTerminate) {
       return
@@ -224,11 +235,7 @@ function streamHTML(
   route: PageRouteMatch,
 ) {
   try {
-    renderTemplate(res, context, {
-      title: route.title || config.site_name,
-      description: route.description || config.site_description,
-      app: App(route),
-    })
+    renderTemplate(res, context, route)
     res.end()
   } catch (error) {
     if (error === EarlyTerminate) {
@@ -247,13 +254,15 @@ function streamHTML(
   }
 }
 
-export let onWsMessage: OnWsMessage = (event, ws, _wss) => {
+export let onWsMessage: OnWsMessage = async (event, ws, _wss) => {
   console.log('ws message:', event)
   // TODO handle case where event[0] is not url
   let eventType: string | undefined
   let url: string
   let args: unknown[] | undefined
   let session = getWSSession(ws)
+  let navigation_type: WindowStub['_navigation_type_']
+  let navigation_method: WindowStub['_navigation_method_']
   if (event[0] === 'mount') {
     event = event as ClientMountMessage
     eventType = 'mount'
@@ -264,6 +273,7 @@ export let onWsMessage: OnWsMessage = (event, ws, _wss) => {
       session.timeZone = timeZone
     }
     session.timezoneOffset = event[4]
+    updateRequestSession(ws.session_id, session)
     let cookie = event[5]
     if (cookie) {
       getWsCookies(ws.ws).unsignedCookies = Object.fromEntries(
@@ -275,11 +285,15 @@ export let onWsMessage: OnWsMessage = (event, ws, _wss) => {
         ),
       )
     }
+    navigation_type = event[6]
+    navigation_method = event[7]
+    logRequest(ws.request, 'ws', url, ws.session_id)
   } else if (event[0][0] === '/') {
     event = event as ClientRouteMessage
     eventType = 'route'
     url = event[0]
     args = event.slice(1)
+    logRequest(ws.request, 'ws', url, ws.session_id)
   } else {
     console.log('unknown type of ws message:', event)
     return
@@ -293,8 +307,27 @@ export let onWsMessage: OnWsMessage = (event, ws, _wss) => {
     event: eventType,
     session,
   }
-  then(matchRoute(context), route => {
-    let node = App(route)
-    dispatchUpdate(context, node, route.title)
-  })
+  try {
+    await then(
+      matchRoute(context),
+      route => {
+        let node = App(route)
+        if (navigation_type === 'express' && navigation_method !== 'GET') return
+        dispatchUpdate(context, node, route.title)
+      },
+      onError,
+    )
+  } catch (error) {
+    onError(error)
+  }
+  function onError(error: unknown) {
+    if (error == EarlyTerminate) {
+      return
+    }
+    if (error instanceof MessageException) {
+      ws.send(error.message)
+      return
+    }
+    console.error(error)
+  }
 }

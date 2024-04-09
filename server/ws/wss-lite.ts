@@ -3,6 +3,8 @@ import { Ping, Pong, Send } from '../../client/ws/ws-lite.js'
 import { debugLog } from '../debug.js'
 import type { ManagedWebsocket, OnWsMessage } from './wss'
 import type { ServerMessage } from '../../client/types'
+import { Request } from 'express'
+import { newRequestSession } from '../../db/request-log.js'
 
 let log = debugLog('wss-lite.ts')
 log.enabled = true
@@ -14,7 +16,7 @@ export function listenWSSConnection(options: {
   onMessage: OnWsMessage
 }) {
   const { wss } = options
-  wss.on('connection', ws => {
+  wss.on('connection', (ws, request) => {
     if (ws.protocol !== 'ws-lite') {
       log('unknown ws protocol:', ws.protocol)
       return
@@ -51,7 +53,14 @@ export function listenWSSConnection(options: {
       log('received unknown ws message:', data)
     })
 
-    const managedWS: ManagedWebsocket = { ws, wss, send, close }
+    const managedWS: ManagedWebsocket = {
+      ws,
+      wss,
+      request: request as Request,
+      session_id: newRequestSession(),
+      send,
+      close,
+    }
     options.onConnection(managedWS)
   })
 }

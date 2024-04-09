@@ -2,7 +2,7 @@
 
 Hacker News Reader
 
-Powered by [ts-liveview](https://github.com/beenotung/ts-liveview/blob/v4/README.md)
+Powered by [ts-liveview](https://github.com/beenotung/ts-liveview/blob/v5-web-template/README.md)
 
 Hosted on: https://hn.liveviews.cc
 

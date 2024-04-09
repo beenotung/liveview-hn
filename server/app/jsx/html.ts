@@ -31,9 +31,12 @@ export function escapeHTMLTextContent(str: string): string {
 }
 
 export function escapeHTMLAttributeValue(
-  str: string | number | boolean,
+  value: string | number | boolean,
 ): string {
-  return JSON.stringify(str)
+  if (typeof value === 'string' && value.includes('"')) {
+    return '"' + value.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"'
+  }
+  return JSON.stringify(value).replaceAll('\\\\', '\\')
 }
 
 // to be used in template that has already wrapped the attribute value in double quotes
@@ -206,6 +209,19 @@ export function flagsToClassName(flags: Record<string, boolean>): string {
     }
   })
   return classes.join(' ')
+}
+
+export function concatClassNames(
+  ...classNames: (string | null | undefined)[]
+): string | undefined {
+  let className = ''
+  for (let name of classNames) {
+    if (name) {
+      className += ' ' + name
+    }
+  }
+  className = className.trim()
+  return className || undefined
 }
 
 // omit style-name conversion, use it as-is

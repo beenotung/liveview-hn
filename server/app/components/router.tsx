@@ -2,12 +2,14 @@ import { o } from '../jsx/jsx.js'
 import { castDynamicContext, Context } from '../context.js'
 import type { Node, NodeList } from '../jsx/types'
 import { Router as UrlRouter } from 'url-router.ts'
-import { Fragment } from './fragment.js'
 import { EarlyTerminate } from '../helpers.js'
 import { setSessionUrl } from '../session.js'
 
 export type LinkAttrs = {
+  'tagName'?: string
   'no-history'?: boolean
+  'no-animation'?: boolean
+  'is-back'?: boolean
   'href': string
   'onclick'?: never
   [name: string]: unknown
@@ -15,17 +17,25 @@ export type LinkAttrs = {
 }
 
 export function Link(attrs: LinkAttrs) {
-  const { 'no-history': quiet, children, ...aAttrs } = attrs
-  const onclick = quiet ? `emitHref(event,'q')` : `emitHref(event)`
-  if (!children) {
+  const {
+    'tagName': _tagName,
+    'no-history': quiet,
+    'no-animation': fast,
+    'is-back': back,
+    children,
+    ...aAttrs
+  } = attrs
+  const tagName = _tagName || 'a'
+  let flag = ''
+  if (quiet) flag += 'q'
+  if (fast) flag += 'f'
+  if (back) flag += 'b'
+  const onclick = flag ? `emitHref(event,'${flag}')` : `emitHref(event)`
+  if (!children && tagName == 'a') {
     console.warn('Link attrs:', attrs)
     console.warn(new Error('Link with empty content'))
   }
-  return (
-    <a onclick={onclick} {...aAttrs}>
-      {children ? Fragment(children) : null}
-    </a>
-  )
+  return [tagName, { onclick, ...aAttrs }, children]
 }
 
 export function Redirect(
@@ -45,6 +55,8 @@ export function Redirect(
   }
   if (context.type === 'ws') {
     setSessionUrl(context.ws, attrs.href)
+    context.ws.send(['redirect', attrs.href])
+    throw EarlyTerminate
   }
   return (
     <a href={href} data-live="redirect">

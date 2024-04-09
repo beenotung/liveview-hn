@@ -7,7 +7,7 @@ source scripts/config
 ssh "$user@$host" "
   set -e
   cd $root_dir
-	sqlite3 data/sqlite3.db '.backup data/backup.sqlite3'
+	sqlite3 data/db.sqlite3 '.backup data/backup.sqlite3'
 "
 
 rsync -SavlPz "$user@$host:$root_dir/data/backup.sqlite3" "data/"

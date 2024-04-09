@@ -5,6 +5,11 @@ pnpm-lock.yaml
 # built files
 dist/
 build/
+template/*.ts
+db/proxy.ts
 
 # lighthouse report
 localhost_*.report.html
+
+# library
+public/lib/

@@ -1,6 +1,17 @@
 import express from 'express'
 import type { html } from './types'
-import type {} from 'compression' // for express.response.flush()
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Response {
+      /**
+       * for streaming html response
+       */
+      flush(): void
+    }
+  }
+}
 
 if (!express.response.flush) {
   express.response.flush = noop

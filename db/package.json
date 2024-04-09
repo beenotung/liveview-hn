@@ -8,21 +8,26 @@
   "license": "BSD-2-Clause",
   "main": "index.js",
   "scripts": {
+    "setup": "run-s migrate seed",
+    "dev": "run-s migrate update",
     "update": "run-s gen-migrate migrate gen-proxy",
-    "gen-migrate": "auto-migrate data/sqlite3.db < erd.txt",
+    "gen-migrate": "auto-migrate ../data/db.sqlite3 < erd.txt",
     "migrate": "knex migrate:latest",
+    "seed": "ts-node seed.ts",
     "gen-proxy": "erd-to-proxy < erd.txt > proxy.ts"
   },
   "dependencies": {
-    "better-sqlite3-proxy": "^2.6.1",
+    "better-sqlite3-proxy": "^2.6.3",
     "better-sqlite3-schema": "^3.1.4",
-    "knex": "^2.5.1"
+    "knex": "^3.1.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.9",
     "@types/integer": "^4.0.3",
     "@types/node": "^20.12.6",
-    "quick-erd": "^4.21.0",
+    "npm-run-all": "^4.1.5",
+    "quick-erd": "^4.21.1",
     "ts-node": "^10.9.2",
-    "typescript": "^4.9.5"
+    "typescript": "^5.4.4"
   }
 }

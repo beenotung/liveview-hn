@@ -1,4 +1,20 @@
-<!DOCTYPE html>
+interface HTMLStream {
+  write(chunk: string): void
+  flush(): void
+}
+type HTMLFunc = (stream: HTMLStream) => void
+
+export type WebOptions = {
+  title: string | HTMLFunc
+  description: string | HTMLFunc
+  app: string | HTMLFunc
+}
+
+export function renderWebTemplate(
+  stream: HTMLStream,
+  options: WebOptions,
+): void {
+  stream.write(/* html */ `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,8 +23,12 @@
       name="viewport"
       content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=6.0"
     />
-    <title>{title}</title>
-    <meta name="description" content="{description}" />
+    <title>`)
+  typeof options.title == 'function' ? options.title(stream) : stream.write(options.title)
+  stream.write(/* html */ `</title>
+    <meta name="description" content="`)
+  typeof options.description == 'function' ? options.description(stream) : stream.write(options.description)
+  stream.write(/* html */ `" />
   </head>
   <body>
     <div id="noscript" aria-hidden="true">
@@ -23,13 +43,25 @@
       interactive when javascript is enabled.
     </div>
     <style>
+      body {
+        padding-bottom: 2.5rem;
+      }
+      #noscript {
+        display: none;
+      }
       #ws_status {
         position: fixed;
-        top: 1em;
-        right: 1em;
+        bottom: 1em;
+        left: 1em;
         padding: 0.25em;
+        background: #0005;
         border: 1px solid #333;
         border-radius: 0.2em;
+        z-index: 1;
+      }
+      #ws_status:hover {
+        opacity: 0.2;
+        user-select: none;
       }
       abbr[title]:after {
         content: ' (' attr(title) ')';
@@ -45,6 +77,10 @@
       document.getElementById('noscript').remove()
       document.getElementById('ws_status').removeAttribute('hidden')
     </script>
-    {app}
+    `)
+  typeof options.app == 'function' ? options.app(stream) : stream.write(options.app)
+  stream.write(/* html */ `
   </body>
 </html>
+`)
+}
