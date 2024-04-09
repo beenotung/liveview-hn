@@ -25,17 +25,10 @@ export async function up(knex: Knex): Promise<void> {
       await knex.insert(row).into('cache')
     }
   }
-  await knex.schema.alterTable('url', table => {
-    table.unique(['url'])
-  })
 }
 
 // prettier-ignore
 export async function down(knex: Knex): Promise<void> {
-  await knex.schema.alterTable('url', table => {
-    table.dropUnique(['url'])
-  })
-
   {
     // alter column (cache.id) to be nullable
 
