@@ -1,5 +1,6 @@
-import { proxySchema } from 'better-sqlite3-proxy'
+import { proxySchema , clearCache} from 'better-sqlite3-proxy'
 import { db } from './db'
+import { SECOND } from '@beenotung/tslib/time.js'
 
 export type Cache = {
   id?: null | number
@@ -101,3 +102,7 @@ export let proxy = proxySchema<DBProxy>({
     ],
   },
 })
+
+setInterval(() => {
+  clearCache(proxy)
+}, 5 * SECOND)
