@@ -33,19 +33,28 @@ export let $styleName = Style(/* css */ \`
 }
 \`)
 
-export function $Name() {
+export function $Name(attrs: {
+  style?: string
+  class?: string
+}) {
+  let className = '$name'
+  if (attrs.class) {
+    className += ' ' + attrs.class
+  }
   return (
-    <div class='$name'>
+    <>
       {$styleName}
-      $Title
-    </div>
+      <div class={className} style={attrs.style}>
+        $Title
+      </div>
+    </>
   )
 }
 
 export default $Name" > "$file"
 
 echo "saved to $file"
-code "$file"
+./scripts/ide.sh "$file"
 
 if [ -d dist ]; then
   touch dist/__dev_restart__

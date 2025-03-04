@@ -45,6 +45,7 @@ else
     server \
     client \
     public \
+    template \
     build \
     dist \
     package.json \
@@ -52,20 +53,15 @@ else
     "$user@$host:$root_dir"
   rsync -SavLPz \
     db/package.json \
+    db/tsconfig.json \
     db/migrations \
-    db/knexfile.ts \
-    db/db.ts \
-    db/proxy.ts \
-    db/seed.ts \
+    db/*.ts \
     "$user@$host:$root_dir/db"
   if [ "$MODE" == "first" ]; then
-    ssh "$user@$host" "
-      set -e
-      cd $root_dir
-      mkdir -p data
-    "
+    rebuild_cmd="pnpm rebuild"
     pm2_cmd="cd $root_dir && pm2 start --name $pm2_name dist/server/index.js"
   else
+    rebuild_cmd=""
     pm2_cmd="pm2 reload $pm2_name"
   fi
   ssh "$user@$host" "
@@ -73,8 +69,11 @@ else
     source ~/.nvm/nvm.sh
     set -x
     cd $root_dir
+    mkdir -p data
     pnpm i -r
+    $rebuild_cmd
     cd db
+    $rebuild_cmd
     npm run setup
     $pm2_cmd
   "
