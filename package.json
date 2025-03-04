@@ -41,8 +41,8 @@
   },
   "dependencies": {
     "@beenotung/tslib": "^23.4.0",
-    "better-sqlite3-proxy": "^2.6.3",
-    "better-sqlite3-schema": "^3.1.4",
+    "better-sqlite3-proxy": "^2.11.0",
+    "better-sqlite3-schema": "^3.1.8",
     "cast.ts": "^1.12.2",
     "cookie-parser": "^1.4.6",
     "debug": "^4.3.4",
@@ -79,5 +79,11 @@
     "populate-env": "^2.0.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild"
+    ]
   }
 }
