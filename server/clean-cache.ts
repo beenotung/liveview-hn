@@ -5,7 +5,7 @@ import { proxy } from '../db/proxy.js'
 import { expireFetchTask } from './fetch-cache.js'
 
 let log = debug('hn:clean-cache')
-log.enabled = true
+// log.enabled = true
 
 type ExpiredCacheRow = {
   id: number
