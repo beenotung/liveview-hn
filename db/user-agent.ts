@@ -1,4 +1,4 @@
-import { format_time_duration } from '@beenotung/tslib'
+import { format_time_duration } from '@beenotung/tslib/format.js'
 import { filter, find } from 'better-sqlite3-proxy'
 import { db } from './db.js'
 import { proxy, RequestLog } from './proxy.js'
@@ -42,7 +42,14 @@ function classifyUserAgent(ua: string) {
   else if (ua.includes('http://mj12bot.com/')) return { bot: 'MJ12Bot' }
   else if (ua.includes('https://babbar.tech/crawler'))
     return { bot: 'BarkrowlerBot' }
-  else if (ua.includes('http://webmeup-crawler.com/')) return { bot: 'BLEXBot' }
+  else if (ua.includes('http://webmeup-crawler.com/') || ua.includes('BLEXBot'))
+    return { bot: 'BLEXBot' }
+  else if (ua.includes('Amazonbot')) return { bot: 'Amazonbot' }
+  else if (ua.includes('ClaudeBot')) return { bot: 'ClaudeBot' }
+  else if (ua.includes('CCBot') || ua.includes('commoncrawl'))
+    return { bot: 'CCBot' }
+  else if (ua.includes('coccocbot') || ua.includes('CocCocBot'))
+    return { bot: 'coccocbot' }
   else if (ua.includes('https://openai.com/')) return { bot: 'OpenAIBot' }
   else if (ua.includes('http://www.linkdex.com/bots/'))
     return { bot: 'LinkdexBot' }
@@ -52,16 +59,24 @@ function classifyUserAgent(ua: string) {
   else if (ua.includes('http://www.google.com/bot.html'))
     return { bot: 'GoogleBot' }
   else if (ua.includes('Googlebot-Image')) return { bot: 'GoogleBot' }
+  else if (ua.includes('Googlebot-News')) return { bot: 'GoogleBot' }
+  else if (ua.includes('AdsBot-Google')) return { bot: 'AdsBot-Google' }
+  else if (ua.includes('Google-Apps-Script')) return { bot: 'GoogleAppsScript' }
   else if (ua.includes('http://duckduckgo.com')) return { bot: 'DuckDuckGoBot' }
   else if (ua.includes('http://yandex.com/bots')) return { bot: 'YandexBot' }
   else if (ua.includes('http://www.baidu.com')) return { bot: 'BaiduBot' }
   else if (ua.includes('https://www.mojeek.com/bot.html'))
     return { bot: 'MojeekBot' }
-  else if (ua.includes('http://napoveda.seznam.cz')) return { bot: 'SeznamBot' }
+  else if (ua.includes('http://napoveda.seznam.cz') || ua.includes('SeznamBot'))
+    return { bot: 'SeznamBot' }
   else if (ua.includes('https://about.censys.io'))
     return { bot: 'CensysInspect' }
   else if (ua.includes('crawler@mixrank.com')) return { bot: 'MixrankBot' }
-  else if (ua.includes('facebookexternalhit')) return { bot: 'FacebookBot' }
+  else if (
+    ua.includes('facebookexternalhit') ||
+    ua.includes('developers.facebook.com/docs/sharing/webmasters/crawler')
+  )
+    return { bot: 'FacebookBot' }
   else if (ua.includes('Mastodon')) return { bot: 'MastodonBot' }
   // e.g. "Slack-ImgProxy (+https://api.slack.com/robots)"
   // e.g. "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)"
@@ -76,6 +91,17 @@ function classifyUserAgent(ua: string) {
     return { bot: 'LinkAffinityBot' }
   else if (ua.includes('https://dataforseo.com/dataforseo-bot'))
     return { bot: 'DataForSeoBot' }
+  else if (ua.includes('PerplexityBot')) return { bot: 'PerplexityBot' }
+  else if (ua.includes('AliyunSecBot')) return { bot: 'AliyunSecBot' }
+  else if (ua.includes('YisouSpider')) return { bot: 'YisouSpider' }
+  else if (ua.includes('SafeDNSBot')) return { bot: 'SafeDNSBot' }
+  else if (ua.includes('HawaiiBot')) return { bot: 'HawaiiBot' }
+  else if (ua.includes('Sogou') || ua.includes('sogou web spider'))
+    return { bot: 'SogouBot' }
+  else if (ua.includes('Scrapy')) return { bot: 'Scrapy' }
+  else if (ua.includes('TurnitinBot')) return { bot: 'TurnitinBot' }
+  else if (ua.includes('zoombot') || ua.includes('suite.seozoom.it/bot.html'))
+    return { bot: 'ZoomBot' }
   else if (ua.includes('iPhone')) return { type: 'iPhone' }
   else if (ua.includes('iPad')) return { type: 'iPad' }
   else if (ua.includes('Macintosh')) return { type: 'MacOS' }
@@ -86,9 +112,14 @@ function classifyUserAgent(ua: string) {
   else if (ua.includes('Links')) return { type: 'Links' }
   else if (ua.includes('Android') || ua.includes('Nokia'))
     return { type: 'Android' }
+  else if (ua.includes('SonyEricsson')) return { type: 'SonyEricsson' }
+  else if (ua.includes('BlackBerry')) return { type: 'BlackBerry' }
   else if (ua.includes('X11; CrOS x86_64')) return { type: 'ChromeOS' }
   else if (ua.includes('Windows')) return { type: 'Windows' }
   else if (ua.includes('Linux')) return { type: 'Linux' }
+  else if (ua.includes('FreeBSD')) return { type: 'FreeBSD' }
+  else if (ua.includes('NetBSD')) return { type: 'NetBSD' }
+  else if (ua.includes('OpenBSD')) return { type: 'OpenBSD' }
   // e.g. "Dart/2.15 (dart:io)"
   else if (/^Dart\/[\d.]+ \(dart:io\)$/.test(ua)) return { bot: 'DartBot' }
   else if (
@@ -173,7 +204,7 @@ let resetStats = db.transaction(() => {
 })
 
 let versionFile = join('data', 'user-agent-version.txt')
-let version = 1
+let version = 3
 function autoResetStats() {
   if (loadNumber(versionFile) == version) return
   resetStats()
