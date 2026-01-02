@@ -13,3 +13,5 @@ console.log(
   'request methods:',
   proxy.method.map(row => row.method),
 )
+
+process.exit(0)
