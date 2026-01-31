@@ -11,6 +11,7 @@ import StoryList from './pages/story-list.js'
 import StoryDetail from './pages/story-detail.js'
 import Profile from './pages/profile.js'
 import NotImplemented from './pages/not-implemented.js'
+import Privacy from './pages/privacy.js'
 import { then } from '@beenotung/tslib/result.js'
 import type { MenuRoute } from './components/menu'
 import type { renderWebTemplate } from '../../template/web.js'
@@ -95,6 +96,7 @@ let routeDict: Routes = {
     status: 501,
   },
   ...UserAgents.routes,
+  ...Privacy.routes,
 }
 
 export let redirectDict: Record<string, string> = {

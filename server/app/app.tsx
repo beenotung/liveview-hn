@@ -140,6 +140,8 @@ export function App(route: PageRouteMatch): Element {
         <Flush />
         <footer>
           <span class="yclinks">
+            <Link href="/privacy">Privacy</Link>
+            {' | '}
             <Link href="/user-agents">Visitors</Link>
             {' | '}
             <Link href="/guidelines">Guidelines</Link>
