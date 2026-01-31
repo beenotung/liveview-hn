@@ -1,7 +1,12 @@
 import { o } from './jsx/jsx.js'
 import { scanTemplateDir } from '../template-file.js'
 import { NextFunction, Request, Response, Router } from 'express'
-import type { Context, ExpressContext, WsContext } from './context'
+import {
+  fixLanguage,
+  type Context,
+  type ExpressContext,
+  type WsContext,
+} from './context.js'
 import type { Component, Element, Node } from './jsx/types'
 import {
   escapeHTMLAttributeValue,
@@ -13,7 +18,7 @@ import { sendHTMLHeader } from './express.js'
 import { Link } from './components/router.js'
 import { OnWsMessage } from '../ws/wss.js'
 import { dispatchUpdate } from './jsx/dispatch.js'
-import { EarlyTerminate, MessageException } from './helpers.js'
+import { EarlyTerminate, HttpError, MessageException } from '../exception.js'
 import { getWSSession } from './session.js'
 import { Flush } from './components/flush.js'
 import { config } from '../config.js'
@@ -31,6 +36,8 @@ import { getWsCookies } from './cookie.js'
 import { logRequest } from './log.js'
 import { WindowStub } from '../../client/internal.js'
 import { updateRequestSession } from '../../db/request-log.js'
+import { getRateLimitContext } from '../rate-limit.js'
+import { get_rate_limit } from '../rate-limits.js'
 
 if (config.development) {
   scanTemplateDir('template')
@@ -170,9 +177,7 @@ export function attachRoutes(app: Router) {
   app.use(handleLiveView)
 }
 
-function handleLiveView(req: Request, res: Response, next: NextFunction) {
-  sendHTMLHeader(res)
-
+async function handleLiveView(req: Request, res: Response, next: NextFunction) {
   let context: ExpressContext = {
     type: 'express',
     req,
@@ -181,19 +186,58 @@ function handleLiveView(req: Request, res: Response, next: NextFunction) {
     url: req.url,
   }
 
-  then(matchRoute(context), route => {
-    if (route.status) {
-      res.status(route.status)
+  // Rate limit GET requests
+  try {
+    let rateLimitCtx = getRateLimitContext(context)
+    get_rate_limit.consume(rateLimitCtx)
+  } catch (error) {
+    if (error instanceof HttpError) {
+      res.status(error.statusCode).json({ error: error.message })
+      return
     }
+    throw error
+  }
 
-    route.description = route.description.replace(/"/g, "'")
+  sendHTMLHeader(res)
 
-    if (route.streaming === false) {
-      responseHTML(res, context, route)
-    } else {
-      streamHTML(res, context, route)
+  try {
+    await then(
+      matchRoute(context),
+      route => {
+        if (route.status) {
+          res.status(route.status)
+        }
+
+        route.description = route.description.replace(/"/g, "'")
+
+        if (route.streaming === false) {
+          responseHTML(res, context, route)
+        } else {
+          streamHTML(res, context, route)
+        }
+      },
+      onError,
+    )
+  } catch (error) {
+    onError(error)
+  }
+  function onError(error: unknown) {
+    if (error == EarlyTerminate) {
+      return
     }
-  })
+    if (error instanceof MessageException) {
+      res.json({ message: error.message })
+      return
+    }
+    if (error instanceof HttpError) {
+      res.status(error.statusCode)
+      res.json({ error: error.message })
+      return
+    }
+    res.status(500)
+    res.json({ error: String(error) })
+    console.error(error)
+  }
 }
 
 function responseHTML(
@@ -263,11 +307,11 @@ export let onWsMessage: OnWsMessage = async (event, ws, _wss) => {
   let session = getWSSession(ws)
   let navigation_type: WindowStub['_navigation_type_']
   let navigation_method: WindowStub['_navigation_method_']
-  if (event[0] === 'mount') {
+  if (event[0] === 'mount' || event[0] === 'remount') {
     event = event as ClientMountMessage
-    eventType = 'mount'
+    eventType = event[0]
     url = event[1]
-    session.language = event[2]
+    session.language = fixLanguage(event[2])
     let timeZone = event[3]
     if (timeZone && timeZone !== 'null') {
       session.timeZone = timeZone
@@ -307,10 +351,30 @@ export let onWsMessage: OnWsMessage = async (event, ws, _wss) => {
     event: eventType,
     session,
   }
+
+  // Rate limit WebSocket messages
+  try {
+    let rateLimitCtx = getRateLimitContext(context)
+    get_rate_limit.consume(rateLimitCtx)
+  } catch (error) {
+    if (error instanceof HttpError) {
+      ws.send(['eval', `showToast('${error.message}','error')`])
+      return
+    }
+    throw error
+  }
+
   try {
     await then(
       matchRoute(context),
       route => {
+        if (eventType === 'mount') {
+          if (config.production) {
+            // in production mode, skip hot reload when the server is restarted
+            // so the client state will not be reset in the middle of form filling
+            return
+          }
+        }
         let node = App(route)
         if (navigation_type === 'express' && navigation_method !== 'GET') return
         dispatchUpdate(context, node, route.title)
@@ -326,6 +390,10 @@ export let onWsMessage: OnWsMessage = async (event, ws, _wss) => {
     }
     if (error instanceof MessageException) {
       ws.send(error.message)
+      return
+    }
+    if (error instanceof HttpError) {
+      ws.send(['eval', `showToast('${error.message}','error')`])
       return
     }
     console.error(error)

@@ -1,6 +1,5 @@
-import { proxySchema , clearCache} from 'better-sqlite3-proxy'
+import { proxySchema } from 'better-sqlite3-proxy'
 import { db } from './db'
-import { SECOND } from '@beenotung/tslib/time.js'
 
 export type Cache = {
   id?: null | number
@@ -23,6 +22,18 @@ export type UaType = {
   id?: null | number
   name: string
   count: number
+}
+
+export type GeoIpParts = {
+  id?: null | number
+  hash: string
+  content: string
+}
+
+export type GeoIp = {
+  id?: null | number
+  hash: string
+  content: string
 }
 
 export type RequestSession = {
@@ -61,9 +72,24 @@ export type RequestLog = {
   url?: Url
   user_agent_id: null | number
   user_agent?: UserAgent
+  geo_ip_id: null | number
+  geo_ip?: GeoIp
   request_session_id: null | number
   request_session?: RequestSession
   timestamp: number
+}
+
+export type ErrorLog = {
+  id?: null | number
+  timestamp: number
+  title: string
+  error: string
+  client_url_id: number
+  client_url?: Url
+  api_url_id: number
+  api_url?: Url
+  request_log_id: number
+  request_log?: RequestLog
 }
 
 export type DBProxy = {
@@ -71,11 +97,14 @@ export type DBProxy = {
   method: Method[]
   url: Url[]
   ua_type: UaType[]
+  geo_ip_parts: GeoIpParts[]
+  geo_ip: GeoIp[]
   request_session: RequestSession[]
   ua_bot: UaBot[]
   user_agent: UserAgent[]
   ua_stat: UaStat[]
   request_log: RequestLog[]
+  error_log: ErrorLog[]
 }
 
 export let proxy = proxySchema<DBProxy>({
@@ -85,6 +114,8 @@ export let proxy = proxySchema<DBProxy>({
     method: [],
     url: [],
     ua_type: [],
+    geo_ip_parts: [],
+    geo_ip: [],
     request_session: [],
     ua_bot: [],
     user_agent: [
@@ -98,11 +129,14 @@ export let proxy = proxySchema<DBProxy>({
       ['method', { field: 'method_id', table: 'method' }],
       ['url', { field: 'url_id', table: 'url' }],
       ['user_agent', { field: 'user_agent_id', table: 'user_agent' }],
+      ['geo_ip', { field: 'geo_ip_id', table: 'geo_ip' }],
       ['request_session', { field: 'request_session_id', table: 'request_session' }],
+    ],
+    error_log: [
+      /* foreign references */
+      ['client_url', { field: 'client_url_id', table: 'url' }],
+      ['api_url', { field: 'api_url_id', table: 'url' }],
+      ['request_log', { field: 'request_log_id', table: 'request_log' }],
     ],
   },
 })
-
-setInterval(() => {
-  clearCache(proxy)
-}, 5 * SECOND)

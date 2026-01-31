@@ -6,6 +6,7 @@ import { config } from '../config.js'
 import { debugLog } from '../debug.js'
 import type { Context } from './context'
 import { env } from '../env.js'
+import { CookieOptions } from 'express-serve-static-core'
 
 const log = debugLog('cookie.ts')
 log.enabled = true
@@ -28,13 +29,15 @@ export type Cookies = {
   signedCookies: CookieDict
 }
 
-const ws_cookies = new WeakMap<WebSocket, Cookies>()
+export const ws_cookies = new WeakMap<WebSocket, Cookies>()
 
 export function listenWSSCookie(wss: ws.Server) {
   wss.on('connection', (ws, request) => {
     const req = request as express.Request
     const res = {} as express.Response
+    // @ts-ignore
     req.secure ??= req.headers.origin?.startsWith('https') || false
+    // @ts-ignore
     req.protocol ??= req.secure ? 'wss' : 'ws'
     req.originalUrl ??= req.url || '/'
     cookieMiddleware(req, res, () => {
@@ -64,4 +67,33 @@ export function getContextCookies(context: Context): Cookies | null {
     return getWsCookies(context.ws.ws)
   }
   return null
+}
+
+export function setContextCookie(
+  context: Context,
+  key: string,
+  value: string,
+  options?: CookieOptions,
+) {
+  options ||= {}
+  options.sameSite ||= 'lax'
+  options.path ||= '/'
+  if (context.type === 'express') {
+    context.res.cookie(key, value, options)
+  }
+  if (context.type === 'ws' && !options?.httpOnly) {
+    let cookie = `${key}=${value};SameSite=${options.sameSite};path=${options.path}`
+    if (options?.maxAge) {
+      cookie += `;max-age=${options.maxAge}`
+    }
+    context.ws.send(['set-cookie', cookie])
+  }
+  let cookies = getContextCookies(context)
+  if (cookies) {
+    if (options?.signed) {
+      cookies.signedCookies[key] = value
+    } else {
+      cookies.unsignedCookies[key] = value
+    }
+  }
 }

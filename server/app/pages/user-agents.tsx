@@ -4,10 +4,12 @@ import {
   getOtherUserAgents,
   getUAStatsProgress,
 } from '../../../db/user-agent.js'
+import { Locale, Title } from '../components/locale.js'
 import SourceCode from '../components/source-code.js'
 import Style from '../components/style.js'
 import { Context, getContextLanguage } from '../context.js'
 import { o } from '../jsx/jsx.js'
+import { Routes } from '../routes.js'
 
 function agentTable(
   title: string,
@@ -98,4 +100,29 @@ let UserAgents = (
   </div>
 )
 
-export default UserAgents
+let routes = {
+  '/user-agents': {
+    menuText: <Locale en="Visitor Stats" zh_hk="訪客統計" zh_cn="访客统计" />,
+    title: (
+      <Title
+        t={
+          <Locale
+            en="User Agents of Visitors"
+            zh_hk="訪客的用戶代理"
+            zh_cn="访客的用戶代理"
+          />
+        }
+      />
+    ),
+    description: (
+      <Locale
+        en="User agents of this site's visitors"
+        zh_hk="此網站訪客的用戶代理資訊"
+        zh_cn="此网站访客的用户代理资讯"
+      />
+    ),
+    node: UserAgents,
+  },
+} satisfies Routes
+
+export default { routes }

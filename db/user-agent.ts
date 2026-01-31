@@ -1,6 +1,6 @@
 import { format_time_duration } from '@beenotung/tslib/format.js'
 import { filter, find } from 'better-sqlite3-proxy'
-import { db } from './db.js'
+import { dataDir, db } from './db.js'
 import { proxy, RequestLog } from './proxy.js'
 import { debugLog } from '../server/debug.js'
 import { join } from 'path'
@@ -9,7 +9,7 @@ import { loadNumber, saveNumber } from '../server/app/data/version-number.js'
 let log = debugLog('user-agent')
 log.enabled = true
 
-function classifyUserAgent(ua: string) {
+export function classifyUserAgent(ua: string) {
   if (ua == 'node' || ua == 'node-fetch' || /^axios\/[\d.]+$/.test(ua))
     return { bot: 'NodeBot' }
   else if (ua.startsWith('HackerNews')) return { bot: 'HackerNewsBot' }
@@ -203,7 +203,7 @@ let resetStats = db.transaction(() => {
   ua_stat.last_request_log_id = last_request_log_id = 0
 })
 
-let versionFile = join('data', 'user-agent-version.txt')
+let versionFile = join(dataDir, 'user-agent-version.txt')
 let version = 3
 function autoResetStats() {
   if (loadNumber(versionFile) == version) return

@@ -15,11 +15,14 @@ const origin = location.origin
 function findAndApplyRedirect(root: ParentNode) {
   root.querySelectorAll('a[data-live=redirect]').forEach(e => {
     let a = e as HTMLAnchorElement
-    let title = a.title || document.title
-    const href = a.href.replace(origin, '')
-    history.replaceState(null, title, href)
-    a.remove()
-    win.emit(href)
+    let url = a.href.replace(origin, '')
+    if (url[0] != '/' || a.dataset.full) {
+      location.href = url
+    } else {
+      history.replaceState(null, '', url)
+      a.remove()
+      win.emit(url)
+    }
   })
 }
 
@@ -143,6 +146,36 @@ export function setValue(selector: string, value: string | number) {
   e.value = value as string
 }
 
+export function redirect(url: string, full?: 1) {
+  if (url[0] != '/' || full) {
+    location.href = url
+  } else {
+    history.replaceState(null, '', url)
+    win.emit(url)
+  }
+}
+
+export function addClass(selector: string, className: string) {
+  let e = document.querySelector(selector)
+  if (!e) {
+    console.error('Failed to query selector when addClass, selector:', selector)
+    throw new Error('Failed to query selector when addClass')
+  }
+  className.split(' ').forEach(c => e.classList.add(c))
+}
+
+export function removeClass(selector: string, className: string) {
+  let e = document.querySelector(selector)
+  if (!e) {
+    console.error(
+      'Failed to query selector when removeClass, selector:',
+      selector,
+    )
+    throw new Error('Failed to query selector when removeClass')
+  }
+  className.split(' ').forEach(c => e.classList.remove(c))
+}
+
 function mountElement(e: Element, element: VElement) {
   let [selector, attrs, children] = element
   applySelector(e, selector)
@@ -241,11 +274,11 @@ function applySelector(e: Element, selector: string) {
 }
 
 function applyAttrs(e: Element, attrs: attrs) {
-  Object.entries(attrs).forEach(entry => {
-    if (entry[1] === null) {
-      e.removeAttribute(entry[0])
+  Object.entries(attrs).forEach(([name, value]) => {
+    if (value === undefined || value === null || value === false) {
+      e.removeAttribute(name)
     } else {
-      e.setAttribute(entry[0], entry[1] as string)
+      e.setAttribute(name, value as string)
     }
   })
   let input = e as HTMLInputElement

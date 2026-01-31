@@ -1,3 +1,23 @@
+# Database
+
+This session description the workflow related to `erd.txt` and database schema migration.
+
+## Viewing database schema
+
+You can copy the content of `erd.txt` into the [hosted web ui](https://quick-erd.surge.sh).
+
+The hosted version store the content in LocalStorage, so the changes are persisted across page reload. You can then paste the updated version back to `erd.txt`.
+
+In some region, it may take quite some time to load the website, you can run the web ui locally as well.
+
+Command to run the web ui of erd locally:
+
+```bash
+npm run ui
+```
+
+The local version can auto load and save the content of `erd.txt` on your disk.
+
 ## Updating database schema (migration)
 
 Remark: cd to `db` if not done already
@@ -5,12 +25,12 @@ Remark: cd to `db` if not done already
 Auto mode:
 
 1. update `erd.txt` with any text editor
-2. run `npm run update`
+2. run `npm run dev`
 
 Manual mode:
 
 1. update `erd.txt` with any text editor
-2. run `npm run gen-migrate`
+2. run `npm run plan`
 3. review the generated migration script in the `migrations` directory
 4. run `npm run migrate`
 5. run `npm run gen-proxy`

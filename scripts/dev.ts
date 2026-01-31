@@ -125,14 +125,44 @@ async function postBuild() {
     await main()
     return
   }
-  fix()
+  await fix()
   if (mode == 'serve') {
     restartServer()
   }
 }
 
-function fix() {
+async function fix() {
+  let last_line = ''
+  function update(new_line: string) {
+    if (last_line) {
+      process.stdout.write(
+        '\r' + ' '.repeat(last_line.length) + '\r' + new_line,
+      )
+    } else {
+      process.stdout.write(new_line)
+    }
+    last_line = new_line
+  }
+  let context: FixContext = { update }
+
+  let ps = []
+  ps.push(fix_proxy(context))
+  // add custom fixes here
+  await Promise.all(ps)
+
+  if (last_line) {
+    update('')
+    console.log()
+  }
+}
+
+type FixContext = {
+  update(new_line: string): void
+}
+
+async function fix_proxy(context: FixContext) {
   let file = path.join('dist', 'db', 'proxy.js')
+  await wait_file(context, file)
   let text = fs.readFileSync(file).toString()
   if (!text.includes(`import { db } from "./db"`)) return
   text = text.replace(
@@ -140,6 +170,38 @@ function fix() {
     `import { db } from "./db.js"`,
   )
   fs.writeFileSync(file, text)
+}
+
+async function wait_file(context: FixContext, file: string) {
+  let wait_intervals = [10, 20, 50, 100, 200, 250, 500, 1000]
+  let default_interval = wait_intervals.pop()!
+  let start_time = Date.now()
+  while (!fs.existsSync(file)) {
+    let passed = Date.now() - start_time
+    if (passed === 0) {
+      context.update(`waiting file: ${file}`)
+    } else {
+      context.update(`waiting file: ${file} (for ${format_time(passed)})`)
+    }
+    let interval = wait_intervals.shift() || default_interval
+    await new Promise(resolve => setTimeout(resolve, interval))
+  }
+}
+
+function format_time(time: number) {
+  if (time < 1000) {
+    return time + 'ms'
+  }
+  if (time < 1000 * 2) {
+    return (time / 1000).toFixed(1) + 's'
+  }
+  if (time < 1000 * 60) {
+    return (time / 1000).toFixed(0) + 's'
+  }
+  if (time < 1000 * 60 * 60) {
+    return (time / 1000 / 60).toFixed(1) + 'min'
+  }
+  return (time / 1000 / 60 / 60).toFixed(1) + 'hr'
 }
 
 let stopServer = () => Promise.resolve()
@@ -174,4 +236,16 @@ async function restartServer() {
     }
     return stopServerPromise
   }
+  process.on('SIGINT', () => {
+    // stopped by ctrl+c
+    server.kill('SIGINT')
+  })
+  process.on('SIGTERM', () => {
+    // stopped by kill or pm2
+    server.kill('SIGTERM')
+  })
+  process.on('exit', () => {
+    // stopped by exit
+    server.kill()
+  })
 }

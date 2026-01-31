@@ -1,6 +1,6 @@
 import { capitalize } from '@beenotung/tslib/string.js'
 import { Router } from 'url-router.ts'
-import {  config, title } from '../config.js'
+import { config, title } from '../config.js'
 import { Redirect } from './components/router.js'
 import type { DynamicContext } from './context'
 import { o } from './jsx/jsx.js'
@@ -15,6 +15,7 @@ import { then } from '@beenotung/tslib/result.js'
 import type { MenuRoute } from './components/menu'
 import type { renderWebTemplate } from '../../template/web.js'
 import { VNode } from '../../client/jsx/types.js'
+import { evalAttrsLocale } from './components/locale.js'
 
 let titles: Record<string, string> = {}
 
@@ -49,9 +50,9 @@ export type StaticPageRoute = {
 } & RenderOptions
 
 export type DynamicPageRoute = {
-  resolve: (context: DynamicContext) => ResolvedPageRoue
+  resolve: (context: DynamicContext) => ResolvedPageRoute
 }
-export type ResolvedPageRoue = StaticPageRoute | Promise<StaticPageRoute>
+export type ResolvedPageRoute = StaticPageRoute | Promise<StaticPageRoute>
 
 export type PageRouteMatch = PageRouteOptions & StaticPageRoute
 
@@ -93,12 +94,7 @@ let routeDict: Routes = {
     node: NotImplemented,
     status: 501,
   },
-  '/user-agents': {
-    title: title('User Agents of Visitors'),
-    description: "User agents of this site's visitors",
-    menuText: 'User Agents',
-    node: UserAgents,
-  },
+  ...UserAgents.routes,
 }
 
 export let redirectDict: Record<string, string> = {
@@ -109,10 +105,11 @@ export const pageRouter = new Router<PageRoute>()
 
 export const menuRoutes: MenuRoute[] = []
 
-Object.entries(routeDict).forEach(([url, route]) => {
+Object.entries(routeDict as Routes).forEach(([url, route]) => {
   pageRouter.add(url, { url, ...route })
   if (route.menuText) {
     menuRoutes.push({
+      ...route,
       url,
       menuText: route.menuText,
       menuUrl: route.menuUrl || url,
@@ -142,8 +139,15 @@ export function matchRoute(
   }
   context.routerMatch = match
   if ('resolve' in route) {
-    return then(route.resolve(context), res => Object.assign(route, res))
+    return then(route.resolve(context), res => {
+      let resolved = Object.assign(route, res)
+      evalAttrsLocale(resolved, 'title', context)
+      evalAttrsLocale(resolved, 'description', context)
+      return resolved
+    })
   }
+  evalAttrsLocale(route, 'title', context)
+  evalAttrsLocale(route, 'description', context)
   return route
 }
 
@@ -153,6 +157,7 @@ export function getContextSearchParams(context: DynamicContext) {
   )
 }
 
+// TODO setup robots.txt
 if (config.setup_robots_txt) {
   setTimeout(() => {
     console.log(Object.keys(routeDict).join('\n'))
